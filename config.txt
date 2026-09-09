@@ -1,0 +1,9 @@
+# Student Information
+Surname: Lau
+GivenNames: Zhong Cheng
+StudentID: 22212117
+
+# Hyperparameters
+learning_rate: 0.001
+batch_size = 32
+num_epochs = 10
