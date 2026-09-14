@@ -32,8 +32,11 @@ Last Modified: 2026-09-09
 import sys
 import cv2
 import os
+import math
 
-from ml_utils import read_image_file
+from ultralytics import YOLO
+
+from ml_utils import read_image_file, train_YOLO, load_YOLO, read_config_txt
 
 """
 Test Path Files:
@@ -41,11 +44,10 @@ validation/task3/lcd2/d1.png
 
 """
 
-
 def run_task3(image_path: str, config: dict):
-    print()
+    BPM_reading_detection(image_path)
 
-def BPM_reading_detection(image_path: str):
+def BPM_reading_detection(image_path: str, configs:dict):
     """
     Classifying number and output to a dZ.txt file under output/task3/lcdX/.
 
@@ -58,31 +60,71 @@ def BPM_reading_detection(image_path: str):
     Output: (txt file in output task3)
         - None 
     """
-    output_path = "output/task3/lcdX/"
+    output_path = "output/task3/"
+    output_name = "dx.txt"
+    output_final_path = output_path + output_name
 
-    image = read_image_file(image_path)
-    print(image)
+    model_path = "runs/detect/models/task3/task3_digit_bpm_classifier/weights/best.pt"
+    model = load_YOLO(model_path)
 
-def train_model_BPM_reading():
-    """
-    Train the BPM reading model digits.
+    results = model.predict(source=image_path, conf=float(configs["confidence_threshold"]))
 
-    Output:
-        - model in "models/task3/"
-    """
+    # predicted digit has the highest confidence
+    predicted_digit = None # get predicted digit from idx
+    currentConfidence = -1 * float("inf")  
+
+    for result in results:
+        boxes = result.boxes
+        result.show()
+        print(f"Amount of Boxes: {len(boxes)}")
+        for box in boxes:
+            class_id = int(box.cls[0])
+            # get class label name
+            label = model.names[class_id]
+            # get bounding box coordinate
+            coords = box.xyxy[0].tolist()
+            # get confidence score
+            conf = float(box.conf[0])
+
+            print(f"\nLabel: {label}, Coords: {coords}, Conf: {conf}")
+
+            if conf > currentConfidence:
+                currentConfidence = conf
+                predicted_digit = label
+
+    # save to file
+    if predicted_digit:
+        with open(output_final_path, "w") as fo:
+            fo.write(predicted_digit)
+            print(predicted_digit)
+
+    else:
+        print(f"Unable to find predicted digit for the image. No. Results: {len(results)}")
 
 
 
 
 
 def main():
-    # image path input argument passed
-    if len(sys.argv) > 1: 
-        image_path = sys.argv[1]
 
-        BPM_reading_detection(image_path)
+    print("""
+########### TASK 3 MENU ############
+Get result test image input.
+
+python3 task3.py <image_path>
+
+""")
+    if len(sys.argv) == 2:
+        try:
+            image_path = sys.argv[1]
+
+            BPM_reading_detection(image_path, read_config_txt())   
+        except Exception as e:
+            print(f"Failed to perform task3 task error: {e}")
     else:
-        print("No image file path given in argv.")
+        print("Did not provide sufficient arguments.")
+
 
 if __name__ == "__main__":
     main()
+    

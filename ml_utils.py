@@ -12,7 +12,35 @@ Functions:
 import os
 import cv2
 import numpy as np
- 
+
+from ultralytics import YOLO
+
+def read_config_txt():
+    """
+    Wrapper for reading config base.
+    """
+
+    return read_config("config.txt")
+
+# read the config file 
+def read_config(config_path):
+    """
+    Reads the config file and outputs dictionary with keywords.
+    """
+    config = {}
+    if not os.path.exists(config_path):
+        print(f"Error: Config file {config_path} not found.")
+        return config
+
+    with open(config_path, 'r') as file:
+        for line in file:
+            if not line or ':' not in line: # skip non colon lines
+                continue
+
+            if line.strip() and not line.startswith('#'):
+                key, value = line.split(':')
+                config[key.strip()] = value.strip()
+    return config
 
 def read_image_file(image_path: str):
     """
@@ -43,7 +71,7 @@ def read_image_file(image_path: str):
 # functions from practical
 
 ## TESTING ##
-    
+
 def test_KNN(knn: cv2.Algorithm, test_data: np.array, test_labels: np.array):
     """
     Tests model performance with kNN model and test data.
@@ -91,10 +119,44 @@ def test_SVM(svm: cv2.Algorithm, test_data: np.array, test_labels:np.array):
     print("Confusion Matrix: " + confusion_matrix)
 
 
-
+## LOADING MODEL ##
+def load_YOLO(path: str):
+    """
+    Loads a trained YOLO model from a give .pt file path.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"Model weights not found at: '{path}'. "
+            f"Ensure the path in your config is correct or that training has finished."
+        )
+    
+    return YOLO(path)
 
 ## TRAINING ##
+def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, configs: dict):
+    """
+    Trains a model using YOLO (deep learning for object detection)
+    """
+    # load a model pretrained
+    model = YOLO(configs["model"])
 
+    #train on digits dataset
+    results = model.train(
+        data=trainingDataPath,
+        epochs=int(configs["num_epochs"]),
+        batch=int(configs["batch_size"]),
+        lr0=float(configs["learning_rate"]),
+        project=output_path,
+        name=output_model_name,
+        # DATA AUGMENTATION
+        degrees=float(configs["degrees"]),
+        translate=float(configs["translate"]),
+        scale=float(configs["scale"]),
+        save=True
+    )
+
+    print("TRAINED YOLO MODEL")
+    return model
 
 def train_KNN(output_model_name: str, output_path: str, k: int, train_data: np.array, train_labels: np.array, test_data: np.array, test_labels: np.array):
     """

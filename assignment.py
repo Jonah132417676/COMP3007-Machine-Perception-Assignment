@@ -12,27 +12,12 @@ Last Modified: 2026-09-09
 import sys
 import os
 
+from ml_utils import read_config
+
 from task1 import run_task1
 from task2 import run_task2
 from task3 import run_task3
 from task4 import run_task4
-
-# read the config file 
-def read_config(config_path):
-    """
-    Reads the config file and outputs dictionary with keywords.
-    """
-    config = {}
-    if not os.path.exists(config_path):
-        print(f"Error: Config file {config_path} not found.")
-        return config
-
-    with open(config_path, 'r') as file:
-        for line in file:
-            if line.strip() and not line.startswith('#'):
-                key, value = line.split(':')
-                config[key.strip()] = value.strip()
-    return config
 
 
 def print_usage():
@@ -44,9 +29,9 @@ def print_usage():
     print("USAGE: assignment.py <task> <image_path> [config_path]")
     print("""
     Example:
-        python3 assignment.py task1 data/validation/task3/lcd2/d1.png"
+        python3 assignment.py task3 data/testing/validation/task3/lcd2/d1.png"
         Optional config file path (default: config.txt) in same directory
-        python3 assignment.py task1 data/validation/task3/lcd2/d1.png ./config.txt
+        python3 assignment.py task3 data/testing/validation/task3/lcd2/d1.png ./config.txt
 """)
 
 if __name__ == "__main__":
