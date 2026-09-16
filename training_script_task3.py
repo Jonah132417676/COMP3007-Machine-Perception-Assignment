@@ -7,7 +7,7 @@ Trains task3_digit_bpm_classifier and task3_thermometer_readings_classifier usin
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-09-09
+Last Modified: 2026-16-09
 
 """
 
@@ -28,7 +28,7 @@ def train_model_BPM_reading(configs: dict) -> YOLO:
     # sample data
     bpmDigitFolderPath = "data/task3/LCD Digits.v1i.yolov8/data.yaml"
   
-    model = train_YOLO("task3_digit_bpm_classifier", "models/task3/", bpmDigitFolderPath, configs)
+    model, result = train_YOLO("task3_digit_bpm_classifier", "models/task3/", bpmDigitFolderPath, configs)
 
     return model
 

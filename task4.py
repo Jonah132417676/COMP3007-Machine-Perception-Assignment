@@ -2,15 +2,81 @@
 
 task4.py
 
-<INSERT DESCRIPTION HERE>
+Runs the entire pipeline from start to finish.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-09-09
+Last Modified: 2026-16-09
 
 """
 
+import os
+import cv2
+import glob
+import random
+
+OUTPUT_DIR = os.path.join("output","task4")
+def save_output(output_path, content, output_type='txt'):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    if output_type == 'txt':
+        with open(output_path, 'w') as f:
+            f.write(content)
+        print(f"Text file saved at: {output_path}")
+    elif output_type == 'image':
+        # Assuming 'content' is a valid image object, e.g., from OpenCV
+        cv2.imwrite(output_path, content)
+        print(f"Image saved at: {output_path}")
+    else:
+        print("Unsupported output type. Use 'txt' or 'image'.")
+
+def run_task4(image_path, config):
+
+    # find all the jpg images in input directory
+    images = sorted(glob.glob(os.path.join(image_path, "img*.jpg")))
+
+    if not images:
+        print("     [Task 4] No input images found.")
+        return
+
+    print(f"    [Task 4] Found {len(images)} input image(s).")
+
+    process_task4(images)
 
 
-def run_task4(image_path: str, config: dict):
-    print()
+def get_bpm_reading():
+    sys_val = -90
+    dia_val = -50
+    pulse = -40
+    return f"{sys_val}, {dia_val}, {pulse}"
+
+def get_thermo_reading():
+    return str(-999)
+
+def process_task4(images):
+    # DUMMY LOGIC IMPLEMENT PROPERLY
+    indices = list(range(len(images)))
+    random.shuffle(indices)
+    negative_idx = indices[0]
+    thermo_idx = indices[1]
+    bpm_indicies = indices[2:]
+
+    for i, img_file in enumerate(images):
+        basename = os.path.splitext(os.path.basename(img_file))[0]
+
+        if i == negative_idx:
+            # negative produces no output
+            print(f"    [Task 4] {basename}.jpg -> NEGATIVE (no output)")
+            continue
+        elif i == thermo_idx:
+            # themoemeter
+            reading = get_thermo_reading()
+            line = f"thermo {reading}"
+            print(f"    [Task 4] {basename}.jpg -> {line}")
+        else:
+            # BPM
+            reading = get_bpm_reading()
+            line = f"bpm {reading}"
+            print(f"    [Task 4] {basename}.jpg -> {line}")
+
+        save_output(os.path.join(OUTPUT_DIR, f"{basename}.txt"), line, output_type = "txt")

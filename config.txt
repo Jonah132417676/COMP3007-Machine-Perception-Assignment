@@ -5,12 +5,14 @@ StudentID: 22212117
 
 # Hyperparameters 
 model:yolov8n.pt
-learning_rate: 0.001
-batch_size:32
+learning_rate: 0.01
+batch_size:16
 num_epochs:50
 
 # Data Augmentation
-degrees:5.0 
+degrees:0.0 
 translate:0.05
 scale:0.1
 confidence_threshold:0.05
+fliplr:0.0
+flipud:0.25
