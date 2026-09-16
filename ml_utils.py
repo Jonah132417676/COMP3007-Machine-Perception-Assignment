@@ -8,12 +8,16 @@ Functions:
     - 
 
 
+Author: Zhong Cheng Lau
+
+Student ID: 22212117
 """
 import os
 import cv2
 import numpy as np
 
 from ultralytics import YOLO
+from pathlib import Path
 
 def read_config_txt():
     """
@@ -124,13 +128,15 @@ def load_YOLO(path: str):
     """
     Loads a trained YOLO model from a give .pt file path.
     """
-    if not os.path.exists(path):
+    final_model_path = str(Path(path).resolve())
+
+    if not os.path.exists(final_model_path):
         raise FileNotFoundError(
-            f"Model weights not found at: '{path}'. "
+            f"Model weights not found at: '{final_model_path}'. "
             f"Ensure the path in your config is correct or that training has finished."
         )
     
-    return YOLO(path)
+    return YOLO(final_model_path)
 
 ## TRAINING ##
 def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, configs: dict):
@@ -139,10 +145,10 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
     """
     # load a model pretrained
     model = YOLO(configs["model"])
-
+    final_training_data_path = str(Path(trainingDataPath).resolve())
     #train on digits dataset
     results = model.train(
-        data=trainingDataPath,
+        data=final_training_data_path,
         epochs=int(configs["num_epochs"]),
         batch=int(configs["batch_size"]),
         lr0=float(configs["learning_rate"]),
@@ -152,11 +158,14 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
         degrees=float(configs["degrees"]),
         translate=float(configs["translate"]),
         scale=float(configs["scale"]),
-        save=True
+        fliplr = float(configs["fliplr"]),
+        flipud = float(configs["flipud"]),
+        save=True,
+        exist_ok = True
     )
 
     print("TRAINED YOLO MODEL")
-    return model
+    return model, results
 
 def train_KNN(output_model_name: str, output_path: str, k: int, train_data: np.array, train_labels: np.array, test_data: np.array, test_labels: np.array):
     """

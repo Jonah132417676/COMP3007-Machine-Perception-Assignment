@@ -49,6 +49,7 @@ if __name__ == "__main__":
     config = read_config(config_path)
 
     if not config:
+        print("Warning: No config parameters found. Config file may be empty.")
         sys.exit(1)
 
     try:   

@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 from ml_utils import load_YOLO
 THERMO_LABEL = "thermometer"
 BPM_LABEL = "blood pressure monitor"
-MODEL_PATH = os.path.join("models/task1/task1_model/weights/","best.pt")
+MODEL_PATH = os.path.join("data/task1/task1_model/weights/","best.pt")
 OUTPUT_DIR = os.path.join("output","task1")
 
 def save_output(output_path, content, output_type='txt'):
