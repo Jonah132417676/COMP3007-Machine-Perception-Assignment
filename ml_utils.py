@@ -153,13 +153,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
         batch=int(configs["batch_size"]),
         lr0=float(configs["learning_rate"]),
         project=output_path,
-        name=output_model_name,
-        # DATA AUGMENTATION
-        degrees=float(configs["degrees"]),
-        translate=float(configs["translate"]),
-        scale=float(configs["scale"]),
-        fliplr = float(configs["fliplr"]),
-        flipud = float(configs["flipud"]),
+        name=output_model_name,        
         save=True,
         exist_ok = True
     )

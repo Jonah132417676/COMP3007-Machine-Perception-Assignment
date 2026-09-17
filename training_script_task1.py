@@ -16,7 +16,7 @@ from ultralytics import YOLO
 
 from ml_utils import train_YOLO, read_config_txt
 
-TRAIN_DATA_PATH = os.path.join("training_data/task1/","bpm_and_thermometer.v4i.yolov8/data.yaml")
+TRAIN_DATA_PATH = os.path.join("training_data/task1/Task 1 Dataset/","data.yaml")
 
 def train_model_bpm_thermometer(configs: dict) -> YOLO:
     """
