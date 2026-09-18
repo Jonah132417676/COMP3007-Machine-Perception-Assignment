@@ -36,10 +36,15 @@ def save_output(output_path, content, output_type='txt'):
 
 # pad size trial and error for the model
 # 450
-def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450):
+def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color = [103, 140, 160]):
     """
-    Recognise the digit from the image.
+    Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
+    Input:
+        - sub_dir_path -- path to the subdirectory
+        - lcd_name -- name of lcd image
+        - pad_size -- padding applied for the model to detect digits better
+        - padding_color -- affects model learning and makes the background a more homogenous color
     """
     out_dir = os.path.join(OUTPUT_DIR, lcd_name)
 
@@ -56,7 +61,8 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450):
             img, 
             top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
             borderType=cv2.BORDER_CONSTANT, 
-            value=[50, 50, 50] 
+            value=padding_color
+            
         )
         
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
