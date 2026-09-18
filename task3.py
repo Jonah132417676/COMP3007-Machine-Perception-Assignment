@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from ml_utils import load_YOLO
 
 OUTPUT_DIR = os.path.join("output","task3")
-LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","best.pt")
+LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -62,7 +62,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450):
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # NOT CORRECTLY IMPLEMENTED
-        result = yolo.predict(padded_img)[0]
+        result = yolo.predict(padded_img, retina_masks = True)[0]
         class_names = result.names
 
         plt.imshow(result.plot())

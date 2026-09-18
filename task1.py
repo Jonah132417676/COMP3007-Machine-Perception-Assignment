@@ -39,7 +39,12 @@ import math
 from ml_utils import load_YOLO, crop_object_box, perspective_transform_image
 THERMO_LABEL = "thermometer"
 BPM_LABEL = "blood pressure monitor"
-MODEL_PATH = os.path.join("data/task1/task1_model/weights/","best.pt")
+BPM_THERMOMETER_DEETECTOR_MODEL_PATH = os.path.join("data/task1/","bpm_thermomter_detector.pt")
+LCD_DISPLAY_DETECTOR_MODEL_PATH = os.path.join("data/task1/","lcd_display_detector.pt")
+
+BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY = 0.25
+BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.25
+
 OUTPUT_DIR = os.path.join("output","task1")
 
 def save_output(output_path, content, output_type='txt'):
@@ -83,8 +88,8 @@ def run_task1(image_path, config):
 def process_task1(images):
     # load model ->
 
-    yolo = load_YOLO(MODEL_PATH)
-
+    bpm_model_detector = load_YOLO(BPM_THERMOMETER_DEETECTOR_MODEL_PATH)
+    lcd_display_detector = load_YOLO(LCD_DISPLAY_DETECTOR_MODEL_PATH)
      # task 1 logic
     for i, img_file in enumerate(images):
         img = cv2.imread(img_file)
@@ -96,7 +101,7 @@ def process_task1(images):
         basename = os.path.splitext(os.path.basename(img_file))[0]
         img_num = basename.replace("img", "")
 
-        results = yolo.predict(img)
+        results = bpm_model_detector.predict(img, conf=BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER, retina_masks=True)
         result = results[0]
         # for each result    
         class_names = result.names
@@ -147,12 +152,12 @@ def process_task1(images):
                 final_image = crop_object_box(tensorBox, img)
 
                 # detect lcd screen using lcd screen detector
-                
+                lcdDisplayBox = lcd_display_detector.predict(final_image, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0].boxes.xyxy[0]
                 # crop it (to lcd screen)
-
+                final_image = crop_object_box(lcdDisplayBox, final_image)
                 # orientate
 
-
+                
 
                 out_name = f"lcd{img_num}.png"
 

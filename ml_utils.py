@@ -151,6 +151,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
         name=output_model_name,        
         save=True,
         exist_ok = True,
+        device="cuda"
     )
 
     # validation for the model
