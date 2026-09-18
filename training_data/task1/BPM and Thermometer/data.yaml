@@ -8,6 +8,6 @@ names: ['blood pressure monitor', 'thermometer']
 roboflow:
   workspace: jonah-lau
   project: bpm_and_thermometer
-  version: 5
+  version: 6
   license: CC BY 4.0
-  url: https://universe.roboflow.com/jonah-lau/bpm_and_thermometer/dataset/5
+  url: https://universe.roboflow.com/jonah-lau/bpm_and_thermometer/dataset/6

@@ -8,6 +8,6 @@ names: ['lcd display']
 roboflow:
   workspace: jonah-lau
   project: lcd_display_detector
-  version: 1
+  version: 2
   license: CC BY 4.0
-  url: https://universe.roboflow.com/jonah-lau/lcd_display_detector/dataset/1
+  url: https://universe.roboflow.com/jonah-lau/lcd_display_detector/dataset/2

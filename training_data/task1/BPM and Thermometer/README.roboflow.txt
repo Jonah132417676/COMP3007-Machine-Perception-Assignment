@@ -1,8 +1,8 @@
 
-bpm_and_thermometer - v5 2026-09-17 4:50pm
+bpm_and_thermometer - v6 2026-09-18 5:35pm
 ==============================
 
-This dataset was exported via roboflow.com on September 17, 2026 at 8:51 AM GMT
+This dataset was exported via roboflow.com on September 18, 2026 at 9:36 AM GMT
 
 Roboflow is an end-to-end computer vision platform that helps you
 * collaborate with your team on computer vision projects
@@ -22,11 +22,12 @@ Bpm-and-thermometer are annotated in YOLOv8 format.
 
 The following pre-processing was applied to each image:
 * Auto-orientation of pixel data (with EXIF-orientation stripping)
-* Resize to 512x512 (Stretch)
+* Resize to 1280x1280 (Fit (black edges))
 
 The following augmentation was applied to create 3 versions of each source image:
 * 50% probability of horizontal flip
 * 50% probability of vertical flip
+* Equal probability of one of the following 90-degree rotations: none, clockwise, counter-clockwise
 * Random rotation of between -12 and +12 degrees
 * Random shear of between -10° to +10° horizontally and -10° to +10° vertically
 * Random brigthness adjustment of between -15 and +15 percent

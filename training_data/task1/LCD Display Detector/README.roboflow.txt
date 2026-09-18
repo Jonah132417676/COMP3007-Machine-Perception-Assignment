@@ -1,8 +1,8 @@
 
-lcd_display_detector - v1 2026-09-18 11:53pm
+lcd_display_detector - v2 2026-09-18 5:44pm
 ==============================
 
-This dataset was exported via roboflow.com on September 17, 2026 at 3:54 PM GMT
+This dataset was exported via roboflow.com on September 18, 2026 at 9:44 AM GMT
 
 Roboflow is an end-to-end computer vision platform that helps you
 * collaborate with your team on computer vision projects
@@ -22,13 +22,11 @@ Lcd-display-detector are annotated in YOLOv8 format.
 
 The following pre-processing was applied to each image:
 * Auto-orientation of pixel data (with EXIF-orientation stripping)
-* Resize to 512x512 (Stretch)
+* Resize to 1280x1280 (Fit (black edges))
 
 The following augmentation was applied to create 3 versions of each source image:
 * Random rotation of between -15 and +15 degrees
 * Random shear of between -5° to +5° horizontally and -5° to +5° vertically
 * Random brigthness adjustment of between -15 and +15 percent
-* Random Gaussian blur of between 0 and 0.5 pixels
-* Salt and pepper noise was applied to 0.1 percent of pixels
 
 
