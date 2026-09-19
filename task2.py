@@ -7,7 +7,7 @@ Given a cropped image, you must segment into individual digits (BPM) or segment 
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-16-09
+Last Modified: 2026-20-09
 
 """
 
@@ -21,6 +21,10 @@ from ml_utils import load_YOLO
 
 OUTPUT_DIR = os.path.join("output","task2")
 LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
+
+HUE_THRESHOLD_THERMOMETER = 70
+THERMO_ZOOM_DIVIDER = 15
+DILATE_KERNEL_SIZE = 5
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -41,7 +45,13 @@ def save_output(output_path, content, output_type='txt'):
 def segment_lcd(image, lcd_name):
     """
     Segments the image into individual digits.
+
+    Pipeline: Input -> [YOLOv8 detect all lcd digits] -> [Order Boxes by Y highest] -> [Separate into rows, Sys(3), Dia(2), Pulse(2)] -> [Order Boxes in each sys, dia and pulse by x order] -> [Recombine into ordered full list sys, dia, pulse] -> [Crop images bounding box] -> output
     
+    Inputs:
+        - image -- input lcd display image
+        - lcd_name -- name of lcd image
+
     """
     sub_dir = os.path.join(OUTPUT_DIR, lcd_name)
 
@@ -91,17 +101,77 @@ def segment_lcd(image, lcd_name):
 def segment_thermo(image, thermo_name):
     """
     Segments the thermo for fluid and markings.
+
+    Pipeline: Input -> [HSV convert] -> [HSV thresholding pink/red] -> [Morphology Dilate (fluid wider)] -> [Gray Scale] -> [Canny Edge Detector] -> [Hough Lines Detector] -> [Find minimum y (highest) line point] -> [Crop height at that point] -> output
     
+    Input:
+        - image -- input thermometer image cropped
+        - thermo_name -- the name of the thermometer  png
     """
     sub_dir = os.path.join(OUTPUT_DIR, thermo_name)
 
     h, w = image.shape[:2]
-    # THIS LOGIC IS NOT SUPPOSED TO BE CORRECT
-    crop = image[h // 3: 2 * h //3, :]
 
-    save_output(os.path.join(sub_dir, "t.png"), crop, output_type='image')
+    # convert to hsv (hue, sat, val) space img 
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    print(f"    [Task 2] {thermo_name}: saved t.png to {sub_dir}")
+    # threshold on hue to isolate red/pink tones
+    lower = (5, 75, 55) # trial and error
+    upper = (170, 255, 255)
+
+    mask = cv2.inRange(hsv, lower, upper)
+    result = cv2.bitwise_and(image, image, mask=mask)
+
+    plt.imshow(result)
+    plt.show()
+   
+    # clean up noise using morphology closed to remove holes
+    kernel_size = DILATE_KERNEL_SIZE
+    element = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+    # dilate so detect lines better
+    morphed = cv2.dilate(result, element)
+
+    plt.imshow(morphed)
+    plt.show()
+
+    # pass this through edge -> line detection and detect the line
+    gray = cv2.cvtColor(morphed, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=40, maxLineGap=5)
+
+    # find the top of the resulting region is fluid end point by finding the key point
+    if lines is not None:
+        y_maximum_point = float("inf") # find the minimum deteted y point (end fluid point 0 is highest)
+        imageCopy = morphed.copy()
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            print(f"Line Segment Endpoints: Start({x1}, {y1}) -> End({x2}, {y2})")
+            
+            # draw the lines and endpoints on the original image
+            cv2.line(imageCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)  # line
+            cv2.circle(imageCopy, (x1, y1), 5, (0, 0, 255), -1)      # start
+            cv2.circle(imageCopy, (x2, y2), 5, (0, 0, 255), -1)      # end
+
+            # update maximum y point
+            if y2 < y_maximum_point:
+                y_maximum_point = y2
+
+            if y1 < y_maximum_point:
+                y_maximum_point = y1
+
+        plt.imshow(imageCopy)
+        plt.show()
+
+        zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
+        crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
+        plt.imshow(crop)
+        plt.show()
+        save_output(os.path.join(sub_dir, "t.png"), crop, output_type='image')
+
+        print(f"    [Task 2] {thermo_name}: saved t.png to {sub_dir}")
+    else:
+        print(f"    [Task 2] CANNOT DETECT HOUGH LINES, cannot find fluid endpoint.")
+
     
     
 def run_task2(image_path, config):
@@ -119,7 +189,13 @@ def run_task2(image_path, config):
     process_task2(png_files)
 
 def process_task2(png_files):
+    """
+    Decides which process to use for lcd and thermometers.
 
+    Input:
+        - png_files -- input files to pass
+    
+    """
     for file_path in png_files:
         fname = os.path.basename(file_path)
         base_name = os.path.splitext(fname)[0] # lcd2 or thermo1
@@ -138,6 +214,17 @@ def process_task2(png_files):
 
 
 def plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes):
+    """
+    Shows lcd digits and their labels.
+
+    Input:
+        - result -- the box results from predictions
+        - sysBoxes -- ordered boxes of SYS on bpm
+        - diaBoxes -- ordered boxes of DIA on bpm
+        - pulseBoxes -- ordered boxes of PULSE on bpm
+
+    
+    """
     plt.imshow(result.plot())
         
     plot_points(sysBoxes, result, "red")
@@ -147,6 +234,14 @@ def plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes):
     plt.show()
 
 def plot_points(boxes, result, colour = "red"):
+    """
+    Plots the points of the center of the boxes to the colour.
+
+    Inputs:
+        - boxes -- the boxes to paint
+        - result -- the result predictions bounding boxes
+        - colour -- the colour to paint
+    """
     class_names = result.names
     for i, box in enumerate(boxes):
         class_id = int(box.cls[0].item())

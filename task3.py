@@ -7,7 +7,7 @@ Produce predictions on the digit readings or the thermometer readings.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-16-09
+Last Modified: 2026-20-09
 
 """
 
@@ -70,6 +70,12 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
         # NOT CORRECTLY IMPLEMENTED
         result = yolo.predict(padded_img, retina_masks = True)[0]
         class_names = result.names
+        # maybe in the image find the nearest temperature reading (left most) in the image
+        # then find ticks distance between 
+        # find the distance between endpoint and that nearest temperature reading
+        # then distance yreadingcenter - yfluidendpoint
+        # find amount of ticks
+        # then read the reading (text) then add amount of ticks or take
 
         plt.imshow(result.plot())
         plt.show()
