@@ -105,7 +105,18 @@ def calculate_temperature(sub_dir_path, thermo_name):
         print(f"    [Task 3] {thermo_name} : t.png not found. Skipping.")
         return
 
+    # load temperature image
+    img = cv2.imread(t_path)
+    # turn to gray scale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    h, w = gray.shape
+
+
+
+
+
     # NOT CORRECT
+
     temperature = -999
 
     save_output(os.path.join(out_dir, "t.txt"), str(temperature), output_type="txt")    

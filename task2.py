@@ -14,8 +14,13 @@ Last Modified: 2026-16-09
 import os
 import cv2
 import glob
+import numpy as np
+import matplotlib.pyplot as plt
+
+from ml_utils import load_YOLO
 
 OUTPUT_DIR = os.path.join("output","task2")
+LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -42,25 +47,50 @@ def segment_lcd(image, lcd_name):
 
     h, w = image.shape[:2]
 
-    num_digits = 7 # typical bpm reading is 3 (SYS) 2 (DIA) and 2 (PULSE)
-    strip_w = w // num_digits # evenly separate the image into 7 segments width
+    # First run the lcd digit detector into the image
+    digitDetector = load_YOLO(LCD_MODEL_PATH)
 
-    for d in range(1, num_digits + 1):
+    result = digitDetector.predict(image, retina_masks = True)[0]
+    
+
+    # sort by y then x
+    digitBoxesOrder = [box for box in result.boxes]
+    # sort by y -> box.xywh[0].tolist()[1] = y center
+    digitBoxesOrder.sort(key=lambda box: box.xywh[0].tolist()[1])
+
+    # 0-2 is sys, 3-4 dia, 5-6 pulse --> SEPARATE
+    sysBoxes, diaBoxes, pulseBoxes = digitBoxesOrder[:3], digitBoxesOrder[3:5], digitBoxesOrder[5:7]
+
+    # sort by x -> box.xywhh[0].tolist()[0] = x center
+    sysBoxes.sort(key=lambda box: box.xywh[0].tolist()[0])
+    diaBoxes.sort(key=lambda box: box.xywh[0].tolist()[0])
+    pulseBoxes.sort(key=lambda box: box.xywh[0].tolist()[0])
+
+    # then print 
+    
+    plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes)
+
+    # total ordered boxes, sys, dia then pulse
+    totalOrderedBoxes = [*sysBoxes, *diaBoxes, *pulseBoxes]
+
+    num_digits = len(totalOrderedBoxes)
+    class_names = result.names
+    for i, box in enumerate(totalOrderedBoxes):
         # define x star and x end
+        class_id = int(box.cls[0].item())
+        # obtain label name
+        d = class_names[class_id] 
 
-        # THIS LOGIC IS NOT SUPPOSED TO BE CORRECT
-        x_start = (d - 1) * strip_w
-        x_end = d * strip_w if d < num_digits else w
+        x1, y1, x2, y2 = box.xyxy[0]
 
-        digit_img = image[:, x_start:x_end]
+        digit_img = image[int(y1):int(y2), int(x1):int(x2)]
 
-        save_output(os.path.join(sub_dir, f"d{d}.png"), digit_img, output_type='image')
-    print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
-
+        save_output(os.path.join(sub_dir, f"d{i+1}.png"), digit_img, output_type='image')
+        print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
     
 def segment_thermo(image, thermo_name):
     """
-    Segments the thermo for fluid and markings. .
+    Segments the thermo for fluid and markings.
     
     """
     sub_dir = os.path.join(OUTPUT_DIR, thermo_name)
@@ -105,3 +135,25 @@ def process_task2(png_files):
             segment_thermo(img, base_name)
         else:
             print(f"    [Task 2] unknown file type: {fname}. Skipping")
+
+
+def plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes):
+    plt.imshow(result.plot())
+        
+    plot_points(sysBoxes, result, "red")
+    plot_points(diaBoxes, result, "blue")
+    plot_points(pulseBoxes, result, "green")
+
+    plt.show()
+
+def plot_points(boxes, result, colour = "red"):
+    class_names = result.names
+    for i, box in enumerate(boxes):
+        class_id = int(box.cls[0].item())
+        # obtain label name
+        label_name = class_names[class_id] 
+        print(f"ORDER: {label_name}")
+
+        # obtain position
+        xcenter, ycenter, width, height = box.xywh[0].tolist()
+        plt.scatter(xcenter, ycenter, color=colour, s=40, zorder=5)
