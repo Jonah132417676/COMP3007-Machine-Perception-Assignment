@@ -1,0 +1,150 @@
+2026-09-19 00:52:58 ERROR Traceback (most recent call last):
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\normalize.py", line 28, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\sweeps.py", line 908, in _sweep_with_runs
+    response = api._service_api.execute_graphql(
+        query,
+    ...<5 lines>...
+        },
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\service_api.py", line 192, in execute_graphql
+    resp = self.send_api_request(
+        req,
+        timeout=self._timeout if timeout is None else timeout,
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\service_api.py", line 110, in send_api_request
+    return session.connection.api_request(request, timeout=timeout)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\lib\service\service_connection.py", line 259, in api_request
+    raise WandbApiFailedError(
+    ...<2 lines>...
+    )
+wandb.sdk.lib.service.service_connection.WandbApiFailedError: entityName required for project query
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\cli\cli.py", line 168, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\cli\cli.py", line 1890, in agent
+    wandb_agent.agent(
+    ~~~~~~~~~~~~~~~~~^
+        sweep_id,
+        ^^^^^^^^^
+    ...<4 lines>...
+        term_timeout=term_timeout,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 806, in agent
+    return run_agent(
+        sweep_id,
+    ...<6 lines>...
+        term_timeout=term_timeout,
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 758, in run_agent
+    agent.run()
+    ~~~~~~~~~^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 459, in run
+    sweep_obj = _sweep_with_runs(self._api, self._sweep_id, "{}")
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\normalize.py", line 37, in wrapper
+    raise CommError(message, err) from err
+wandb.errors.errors.CommError: entityName required for project query
+Traceback (most recent call last):
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\normalize.py", line 28, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\sweeps.py", line 908, in _sweep_with_runs
+    response = api._service_api.execute_graphql(
+        query,
+    ...<5 lines>...
+        },
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\service_api.py", line 192, in execute_graphql
+    resp = self.send_api_request(
+        req,
+        timeout=self._timeout if timeout is None else timeout,
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\public\service_api.py", line 110, in send_api_request
+    return session.connection.api_request(request, timeout=timeout)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\lib\service\service_connection.py", line 259, in api_request
+    raise WandbApiFailedError(
+    ...<2 lines>...
+    )
+wandb.sdk.lib.service.service_connection.WandbApiFailedError: entityName required for project query
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\cli\cli.py", line 168, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\cli\cli.py", line 1890, in agent
+    wandb_agent.agent(
+    ~~~~~~~~~~~~~~~~~^
+        sweep_id,
+        ^^^^^^^^^
+    ...<4 lines>...
+        term_timeout=term_timeout,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 806, in agent
+    return run_agent(
+        sweep_id,
+    ...<6 lines>...
+        term_timeout=term_timeout,
+    )
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 758, in run_agent
+    agent.run()
+    ~~~~~~~~~^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\wandb_agent.py", line 459, in run
+    sweep_obj = _sweep_with_runs(self._api, self._sweep_id, "{}")
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\apis\normalize.py", line 37, in wrapper
+    raise CommError(message, err) from err
+wandb.errors.errors.CommError: entityName required for project query
+2026-09-19 00:52:58 INFO Reached EOF.
+2026-09-19 00:52:58 INFO Closing mailbox, abandoning 0 handles.
+2026-09-19 00:53:18 INFO Running runs: []
+2026-09-19 00:53:19 INFO Agent received command: run
+2026-09-19 00:53:19 INFO Agent starting run with config:
+	GivenNames: Zhong Cheng
+	StudentID: 22212117
+	Surname: Lau
+	batch_size: 8
+	learning_rate: 0.001
+	model: yolov8n.pt
+	num_epochs: 10
+	train: {'agnostic_nms': 'true', 'amp': 'true', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 12, 'box': 6.050087809479571, 'cache': 'false', 'close_mosaic': 5, 'cls': 0.7528506326338017, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'true', 'dfl': 2.5516752795199578, 'dnn': 'false', 'dynamic': 'true', 'epochs': 57, 'erasing': 0.725833491377623, 'exist_ok': 'false', 'fliplr': 0.3137831585273334, 'format': 'torchscript', 'fraction': 1, 'half': 'false', 'hsv_h': 0.009712803761243626, 'hsv_s': 0.7921630062553047, 'hsv_v': 0.7747337180903013, 'imgsz': 832, 'int8': 'false', 'iou': 0.681291412556366, 'keras': 'false', 'kobj': 2, 'lr0': 0.0005274324160162877, 'lrf': 0.01625216472417451, 'mask_ratio': 8, 'max_det': 487, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 0.613584152244876, 'mosaic': 1, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 59, 'nms': 'true', 'optimize': 'true', 'optimizer': 'auto', 'overlap_mask': 'true', 'patience': 90, 'plots': 'true', 'pose': 7, 'pretrained': 'false', 'profile': 'true', 'rect': 'false', 'resume': 'false', 'retina_masks': 'true', 'save': 'true', 'save_conf': 'false', 'save_crop': 'true', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'false', 'save_hybrid': 'false', 'save_json': 'false', 'save_period': 0, 'save_txt': 'false', 'scale': 0.9275514364659126, 'show': 'true', 'show_boxes': 'true', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'true', 'single_cls': 'false', 'split': 'val', 'stream_buffer': 'false', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.14355083105834135, 'val': 'false', 'verbose': 'true', 'vid_stride': 1, 'visualize': 'false', 'warmup_epochs': 4, 'warmup_momentum': 1.5578080565780628, 'weight_decay': 0.0007475811233638361, 'workspace': 6}
+2026-09-19 00:53:19 INFO About to run command: python train.py "--GivenNames=Zhong Cheng" --StudentID=22212117 --Surname=Lau --batch_size=8 --learning_rate=0.001 --model=yolov8n.pt --num_epochs=10 "--train={'agnostic_nms': 'true', 'amp': 'true', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 12, 'box': 6.050087809479571, 'cache': 'false', 'close_mosaic': 5, 'cls': 0.7528506326338017, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'true', 'dfl': 2.5516752795199578, 'dnn': 'false', 'dynamic': 'true', 'epochs': 57, 'erasing': 0.725833491377623, 'exist_ok': 'false', 'fliplr': 0.3137831585273334, 'format': 'torchscript', 'fraction': 1, 'half': 'false', 'hsv_h': 0.009712803761243626, 'hsv_s': 0.7921630062553047, 'hsv_v': 0.7747337180903013, 'imgsz': 832, 'int8': 'false', 'iou': 0.681291412556366, 'keras': 'false', 'kobj': 2, 'lr0': 0.0005274324160162877, 'lrf': 0.01625216472417451, 'mask_ratio': 8, 'max_det': 487, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 0.613584152244876, 'mosaic': 1, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 59, 'nms': 'true', 'optimize': 'true', 'optimizer': 'auto', 'overlap_mask': 'true', 'patience': 90, 'plots': 'true', 'pose': 7, 'pretrained': 'false', 'profile': 'true', 'rect': 'false', 'resume': 'false', 'retina_masks': 'true', 'save': 'true', 'save_conf': 'false', 'save_crop': 'true', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'false', 'save_hybrid': 'false', 'save_json': 'false', 'save_period': 0, 'save_txt': 'false', 'scale': 0.9275514364659126, 'show': 'true', 'show_boxes': 'true', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'true', 'single_cls': 'false', 'split': 'val', 'stream_buffer': 'false', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.14355083105834135, 'val': 'false', 'verbose': 'true', 'vid_stride': 1, 'visualize': 'false', 'warmup_epochs': 4, 'warmup_momentum': 1.5578080565780628, 'weight_decay': 0.0007475811233638361, 'workspace': 6}"
+2026-09-19 00:53:24 INFO Running runs: ['voindeel']
+2026-09-19 00:53:24 INFO Cleaning up finished run: voindeel
+2026-09-19 00:53:24 INFO Reached EOF.
+2026-09-19 00:53:24 INFO Closing mailbox, abandoning 0 handles.
+2026-09-19 00:53:29 INFO Agent received command: run
+2026-09-19 00:53:29 INFO Agent starting run with config:
+	GivenNames: Zhong Cheng
+	StudentID: 22212117
+	Surname: Lau
+	batch_size: 8
+	learning_rate: 0.001
+	model: yolov8n.pt
+	num_epochs: 10
+	train: {'agnostic_nms': 'true', 'amp': 'true', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 10, 'box': 13.11453719209364, 'cache': 'true', 'close_mosaic': 10, 'cls': 0.5509684458320739, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'false', 'dfl': 1.6008630708409124, 'dnn': 'true', 'dynamic': 'false', 'epochs': 30, 'erasing': 0.6802539608397884, 'exist_ok': 'false', 'fliplr': 0.3950406613241131, 'format': 'torchscript', 'fraction': 1, 'half': 'false', 'hsv_h': 0.026614565166824197, 'hsv_s': 0.8770339451208403, 'hsv_v': 0.6057208570763303, 'imgsz': 416, 'int8': 'true', 'iou': 0.6526478260415449, 'keras': 'true', 'kobj': 2, 'lr0': 0.0005843954670716671, 'lrf': 0.010776155926732388, 'mask_ratio': 8, 'max_det': 502, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 1.871186524832917, 'mosaic': 2, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 55, 'nms': 'false', 'optimize': 'false', 'optimizer': 'auto', 'overlap_mask': 'true', 'patience': 141, 'plots': 'false', 'pose': 22, 'pretrained': 'true', 'profile': 'true', 'rect': 'true', 'resume': 'false', 'retina_masks': 'true', 'save': 'false', 'save_conf': 'true', 'save_crop': 'true', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'true', 'save_hybrid': 'true', 'save_json': 'true', 'save_period': 0, 'save_txt': 'false', 'scale': 0.3443660493373182, 'show': 'true', 'show_boxes': 'true', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'false', 'single_cls': 'true', 'split': 'val', 'stream_buffer': 'true', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.07482439524896034, 'val': 'true', 'verbose': 'false', 'vid_stride': 2, 'visualize': 'false', 'warmup_epochs': 5, 'warmup_momentum': 1.021793721079714, 'weight_decay': 0.0006698659682240873, 'workspace': 7}
+2026-09-19 00:53:29 INFO About to run command: python train.py "--GivenNames=Zhong Cheng" --StudentID=22212117 --Surname=Lau --batch_size=8 --learning_rate=0.001 --model=yolov8n.pt --num_epochs=10 "--train={'agnostic_nms': 'true', 'amp': 'true', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 10, 'box': 13.11453719209364, 'cache': 'true', 'close_mosaic': 10, 'cls': 0.5509684458320739, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'false', 'dfl': 1.6008630708409124, 'dnn': 'true', 'dynamic': 'false', 'epochs': 30, 'erasing': 0.6802539608397884, 'exist_ok': 'false', 'fliplr': 0.3950406613241131, 'format': 'torchscript', 'fraction': 1, 'half': 'false', 'hsv_h': 0.026614565166824197, 'hsv_s': 0.8770339451208403, 'hsv_v': 0.6057208570763303, 'imgsz': 416, 'int8': 'true', 'iou': 0.6526478260415449, 'keras': 'true', 'kobj': 2, 'lr0': 0.0005843954670716671, 'lrf': 0.010776155926732388, 'mask_ratio': 8, 'max_det': 502, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 1.871186524832917, 'mosaic': 2, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 55, 'nms': 'false', 'optimize': 'false', 'optimizer': 'auto', 'overlap_mask': 'true', 'patience': 141, 'plots': 'false', 'pose': 22, 'pretrained': 'true', 'profile': 'true', 'rect': 'true', 'resume': 'false', 'retina_masks': 'true', 'save': 'false', 'save_conf': 'true', 'save_crop': 'true', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'true', 'save_hybrid': 'true', 'save_json': 'true', 'save_period': 0, 'save_txt': 'false', 'scale': 0.3443660493373182, 'show': 'true', 'show_boxes': 'true', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'false', 'single_cls': 'true', 'split': 'val', 'stream_buffer': 'true', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.07482439524896034, 'val': 'true', 'verbose': 'false', 'vid_stride': 2, 'visualize': 'false', 'warmup_epochs': 5, 'warmup_momentum': 1.021793721079714, 'weight_decay': 0.0006698659682240873, 'workspace': 7}"
+2026-09-19 00:53:34 INFO Running runs: ['6mc3n7pc']
+2026-09-19 00:53:34 INFO Cleaning up finished run: 6mc3n7pc
+2026-09-19 00:53:34 INFO Reached EOF.
+2026-09-19 00:53:34 INFO Closing mailbox, abandoning 0 handles.
+2026-09-19 00:53:39 INFO Agent received command: run
+2026-09-19 00:53:39 INFO Agent starting run with config:
+	GivenNames: Zhong Cheng
+	StudentID: 22212117
+	Surname: Lau
+	batch_size: 8
+	learning_rate: 0.001
+	model: yolov8n.pt
+	num_epochs: 10
+	train: {'agnostic_nms': 'true', 'amp': 'false', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 4, 'box': 9.419805890125598, 'cache': 'false', 'close_mosaic': 15, 'cls': 0.26695163526288257, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'false', 'dfl': 2.4416426596621337, 'dnn': 'true', 'dynamic': 'false', 'epochs': 61, 'erasing': 0.5015562778769911, 'exist_ok': 'true', 'fliplr': 0.6851268057448348, 'format': 'torchscript', 'fraction': 2, 'half': 'false', 'hsv_h': 0.01662294342017982, 'hsv_s': 1.143712985514331, 'hsv_v': 0.4723681324356475, 'imgsz': 775, 'int8': 'true', 'iou': 0.7736257225093436, 'keras': 'true', 'kobj': 2, 'lr0': 0.001111454831197353, 'lrf': 0.012992914931562433, 'mask_ratio': 6, 'max_det': 447, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 1.6180225463676865, 'mosaic': 2, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 99, 'nms': 'true', 'optimize': 'false', 'optimizer': 'auto', 'overlap_mask': 'false', 'patience': 118, 'plots': 'true', 'pose': 15, 'pretrained': 'false', 'profile': 'true', 'rect': 'true', 'resume': 'true', 'retina_masks': 'false', 'save': 'false', 'save_conf': 'false', 'save_crop': 'false', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'true', 'save_hybrid': 'false', 'save_json': 'true', 'save_period': -2, 'save_txt': 'true', 'scale': 0.4956760562473084, 'show': 'false', 'show_boxes': 'false', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'true', 'single_cls': 'true', 'split': 'val', 'stream_buffer': 'false', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.08417354517461981, 'val': 'true', 'verbose': 'false', 'vid_stride': 2, 'visualize': 'false', 'warmup_epochs': 3, 'warmup_momentum': 1.3996046328967937, 'weight_decay': 0.0003795162690658439, 'workspace': 6}
+2026-09-19 00:53:39 INFO About to run command: python train.py "--GivenNames=Zhong Cheng" --StudentID=22212117 --Surname=Lau --batch_size=8 --learning_rate=0.001 --model=yolov8n.pt --num_epochs=10 "--train={'agnostic_nms': 'true', 'amp': 'false', 'augment': 'false', 'auto_augment': 'randaugment', 'batch': 4, 'box': 9.419805890125598, 'cache': 'false', 'close_mosaic': 15, 'cls': 0.26695163526288257, 'cos_lr': 'true', 'crop_fraction': 2, 'data': 'C:\\\\Users\\\\Jonah\\\\OneDrive\\\\Desktop\\\\COMP3007-Machine-Perception-Assignment\\\\training_data\\\\task3\\\\Task 3 Dataset LCD Digits\\\\data.yaml', 'deterministic': 'false', 'dfl': 2.4416426596621337, 'dnn': 'true', 'dynamic': 'false', 'epochs': 61, 'erasing': 0.5015562778769911, 'exist_ok': 'true', 'fliplr': 0.6851268057448348, 'format': 'torchscript', 'fraction': 2, 'half': 'false', 'hsv_h': 0.01662294342017982, 'hsv_s': 1.143712985514331, 'hsv_v': 0.4723681324356475, 'imgsz': 775, 'int8': 'true', 'iou': 0.7736257225093436, 'keras': 'true', 'kobj': 2, 'lr0': 0.001111454831197353, 'lrf': 0.012992914931562433, 'mask_ratio': 6, 'max_det': 447, 'mode': 'train', 'model': 'yolov8n.pt', 'momentum': 1.6180225463676865, 'mosaic': 2, 'multi_scale': 'false', 'name': 'digit_LCD_classifier_model', 'nbs': 99, 'nms': 'true', 'optimize': 'false', 'optimizer': 'auto', 'overlap_mask': 'false', 'patience': 118, 'plots': 'true', 'pose': 15, 'pretrained': 'false', 'profile': 'true', 'rect': 'true', 'resume': 'true', 'retina_masks': 'false', 'save': 'false', 'save_conf': 'false', 'save_crop': 'false', 'save_dir': 'runs\\\\detect\\\\digit_LCD_classifier_model', 'save_frames': 'true', 'save_hybrid': 'false', 'save_json': 'true', 'save_period': -2, 'save_txt': 'true', 'scale': 0.4956760562473084, 'show': 'false', 'show_boxes': 'false', 'show_conf': 'false', 'show_labels': 'true', 'simplify': 'true', 'single_cls': 'true', 'split': 'val', 'stream_buffer': 'false', 'task': 'detect', 'tracker': 'botsort.yaml', 'translate': 0.08417354517461981, 'val': 'true', 'verbose': 'false', 'vid_stride': 2, 'visualize': 'false', 'warmup_epochs': 3, 'warmup_momentum': 1.3996046328967937, 'weight_decay': 0.0003795162690658439, 'workspace': 6}"
+2026-09-19 00:53:43 INFO Reached EOF.
+2026-09-19 00:53:43 INFO Closing mailbox, abandoning 0 handles.

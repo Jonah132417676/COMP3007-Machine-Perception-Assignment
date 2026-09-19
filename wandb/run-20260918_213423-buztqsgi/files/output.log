@@ -1,0 +1,78 @@
+                 Class     Images  Instances      Box(P
+                   all         66        548      0.957      0.952       0.97      0.807
+                     0         44         75      0.961      0.988      0.994      0.882
+                     1         56        108       0.96      0.963      0.971      0.646
+                     2         40         74      0.885      0.946      0.953       0.82
+                     3         30         44      0.982      0.932      0.957      0.819
+                     4         29         39      0.997      0.974      0.979      0.816
+                     5         23         33      0.878      0.874      0.925      0.778
+                     6         30         38          1      0.935      0.974      0.813
+                     7         42         56      0.982      0.971      0.977      0.779
+                     8         28         40      0.975      0.964      0.993       0.87
+                     9         31         41      0.952      0.973      0.977       0.85
+Generating Visualizations for batch-1/1: 100%|█| 8/8 [00:00<00:00
+Traceback (most recent call last):
+  File "c:\Users\Jonah\OneDrive\Desktop\COMP3007-Machine-Perception-Assignment\training_script_task3.py", line 49, in <module>
+    train_model_BPM_reading(configs)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "c:\Users\Jonah\OneDrive\Desktop\COMP3007-Machine-Perception-Assignment\training_script_task3.py", line 31, in train_model_BPM_reading
+    model, result = train_YOLO(LCD_DIGIT_MODEL_NAME, "data/task3/", LCD_TRAIN_DATA_PATH, configs)
+                    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Jonah\OneDrive\Desktop\COMP3007-Machine-Perception-Assignment\ml_utils.py", line 175, in train_YOLO
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\ultralytics\engine\model.py", line 636, in val
+    validator(model=self.model)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\ultralytics\engine\validator.py", line 199, in __call__
+    self.run_callbacks("on_val_end")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\ultralytics\engine\validator.py", line 268, in run_callbacks
+    callback(self)
+    ~~~~~~~~^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\integration\ultralytics\callback.py", line 382, in on_val_end
+    wandb.log({"Validation-Table": self.validation_table}, commit=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 327, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 385, in wrapper_fn
+    return func(self, *args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 372, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 1930, in log
+    self._log(data=data, step=step, commit=commit)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 1641, in _log
+    self._partial_history_callback(data, step, commit)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 327, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\wandb_run.py", line 1477, in _partial_history_callback
+    self._interface.publish_partial_history(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        publish_step=not_using_tensorboard,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\interface\interface.py", line 696, in publish_partial_history
+    data = history_dict_to_json(run, data, step=user_step, ignore_copy_err=True)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\data_types\utils.py", line 55, in history_dict_to_json
+    payload[key] = val_to_json(
+                   ~~~~~~~~~~~^
+        run, key, val, namespace=step, ignore_copy_err=ignore_copy_err
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\data_types\utils.py", line 148, in val_to_json
+    res = val.to_json(run)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\data_types\table.py", line 809, in to_json
+    json_dict = super().to_json(run_or_artifact)
+  File "C:\Users\Jonah\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\wandb\sdk\data_types\base_types\media.py", line 211, in to_json
+    assert self._run is run, (
+           ^^^^^^^^^^^^^^^^
+AssertionError: We don't support referring to media files across runs.

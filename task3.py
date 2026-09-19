@@ -14,8 +14,12 @@ Last Modified: 2026-16-09
 import os
 import cv2
 import glob
+import matplotlib.pyplot as plt
+
+from ml_utils import load_YOLO
 
 OUTPUT_DIR = os.path.join("output","task3")
+LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","best.pt")
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -38,17 +42,49 @@ def recognise_lcd_digits(sub_dir_path, lcd_name):
     out_dir = os.path.join(OUTPUT_DIR, lcd_name)
 
     digit_files = sorted(glob.glob(os.path.join(sub_dir_path, "d*.png")))
+    yolo = load_YOLO(LCD_MODEL_PATH)
 
     if not digit_files:
         print(f"    [Task 3] {lcd_name}: no digit images found.")
 
-    for dfile in digit_files:
+    for dfile in digit_files:   
+        img = cv2.imread(dfile)
+        # add padding as model has trained on smaller lcd digits, not full
+        pad_size = 50
+        padded_img = cv2.copyMakeBorder(
+            img, 
+            top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
+            borderType=cv2.BORDER_CONSTANT, 
+            value=[50, 50, 50] 
+        )
+        
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # NOT CORRECTLY IMPLEMENTED
+        result = yolo.predict(padded_img)[0]
+        class_names = result.names
+
+        plt.imshow(result.plot())
+        plt.show()
+
+        if result is None or len(result.boxes) == 0:
+            # negative produce no output
+            final_image = None
+            print(f"    [Task 1] {dname}.jpg -> (no output)")
+            continue
+        
         digit = -1
 
-        save_output(os.path.join(out_dir, f"{dname}.txt"), str(digit), output_type="txt")
+        for box in result.boxes:
+            class_id = int(box.cls[0].item())
+            # obtain label name
+            label_name = class_names[class_id]
+            # for each image if negative 
+            print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
+
+            digit = label_name
+
+            save_output(os.path.join(out_dir, f"{dname}.txt"), str(digit), output_type="txt")
 
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 

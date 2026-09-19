@@ -1,0 +1,28 @@
+{
+  "os":  "Windows-11-10.0.26200-SP0",
+  "python":  "CPython 3.14.7",
+  "startedAt":  "2026-09-18T16:45:14.242556Z",
+  "program":  "c:\\Users\\Jonah\\OneDrive\\Desktop\\COMP3007-Machine-Perception-Assignment\\training_script_task3.py",
+  "codePath":  "training_script_task3.py",
+  "codePathLocal":  "training_script_task3.py",
+  "git":  {
+    "remote":  "https://github.com/Jonah132417676/COMP3007-Machine-Perception-Assignment.git",
+    "commit":  "40ce67a1c0f4594aa8ac69220dc413d23192ec34"
+  },
+  "email":  "jonahzclau@gmail.com",
+  "root":  "C:\\Users\\Jonah\\OneDrive\\Desktop\\COMP3007-Machine-Perception-Assignment",
+  "host":  "DESKTOP-718RJBM",
+  "executable":  "C:\\Users\\Jonah\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+  "cpu_count":  6,
+  "cpu_count_logical":  12,
+  "disk":  {
+    "/":  {
+      "total":  "1999310417920",
+      "used":  "978862223360"
+    }
+  },
+  "memory":  {
+    "total":  "33328848896"
+  },
+  "writerId":  "cvlro6eelsb2wt556xaeqq1qxbehjebi"
+}

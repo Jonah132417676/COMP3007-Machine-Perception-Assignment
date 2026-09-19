@@ -1,19 +1,19 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: /Users/jonahzclau/University/_COMP3007 - Machine Perception/COMP3007 Machine
-  Perception Assignment/data/task1/bpm_and_thermometer.v4i.yolov8/data.yaml
-epochs: 20
+data: C:\Users\Jonah\OneDrive\Desktop\COMP3007-Machine-Perception-Assignment\training_data\task1\Task
+  1 Dataset\data.yaml
+epochs: 10
 time: null
 patience: 100
-batch: 32
+batch: 8
 imgsz: 640
 save: true
 save_period: -1
 cache: false
 device: null
 workers: 8
-project: models/task1/
+project: data/task1/
 name: task1_model
 exist_ok: true
 pretrained: true
@@ -71,7 +71,7 @@ simplify: false
 opset: null
 workspace: 4
 nms: false
-lr0: 0.01
+lr0: 0.001
 lrf: 0.01
 momentum: 0.937
 weight_decay: 0.0005
@@ -89,12 +89,12 @@ hsv_h: 0.015
 hsv_s: 0.7
 hsv_v: 0.4
 degrees: 0.0
-translate: 0.05
-scale: 0.1
+translate: 0.1
+scale: 0.5
 shear: 0.0
 perspective: 0.0
-flipud: 0.25
-fliplr: 0.0
+flipud: 0.0
+fliplr: 0.5
 bgr: 0.0
 mosaic: 1.0
 mixup: 0.0
@@ -104,4 +104,4 @@ erasing: 0.4
 crop_fraction: 1.0
 cfg: null
 tracker: botsort.yaml
-save_dir: models/task1/task1_model
+save_dir: data\task1\task1_model

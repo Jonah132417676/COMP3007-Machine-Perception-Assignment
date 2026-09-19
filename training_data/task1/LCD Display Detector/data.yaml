@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['lcd display']
+
+roboflow:
+  workspace: jonah-lau
+  project: lcd_display_detector
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/jonah-lau/lcd_display_detector/dataset/1

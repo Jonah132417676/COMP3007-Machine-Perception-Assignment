@@ -1,0 +1,102 @@
+wandb_version: 1
+
+GivenNames:
+  value: Zhong Cheng
+StudentID:
+  value: '22212117'
+Surname:
+  value: Lau
+batch_size:
+  value: '8'
+learning_rate:
+  value: '0.001'
+model:
+  value: yolov8n.pt
+num_epochs:
+  value: '10'
+train:
+  value:
+    agnostic_nms: 'true'
+    amp: 'true'
+    augment: 'false'
+    auto_augment: randaugment
+    batch: 12
+    box: 6.050087809479571
+    cache: 'false'
+    close_mosaic: 5
+    cls: 0.7528506326338017
+    cos_lr: 'true'
+    crop_fraction: 2
+    data: C:\\Users\\Jonah\\OneDrive\\Desktop\\COMP3007-Machine-Perception-Assignment\\training_data\\task3\\Task
+      3 Dataset LCD Digits\\data.yaml
+    deterministic: 'true'
+    dfl: 2.5516752795199578
+    dnn: 'false'
+    dynamic: 'true'
+    epochs: 57
+    erasing: 0.725833491377623
+    exist_ok: 'false'
+    fliplr: 0.3137831585273334
+    format: torchscript
+    fraction: 1
+    half: 'false'
+    hsv_h: 0.009712803761243626
+    hsv_s: 0.7921630062553047
+    hsv_v: 0.7747337180903013
+    imgsz: 832
+    int8: 'false'
+    iou: 0.681291412556366
+    keras: 'false'
+    kobj: 2
+    lr0: 0.0005274324160162877
+    lrf: 0.01625216472417451
+    mask_ratio: 8
+    max_det: 487
+    mode: train
+    model: yolov8n.pt
+    momentum: 0.613584152244876
+    mosaic: 1
+    multi_scale: 'false'
+    name: digit_LCD_classifier_model
+    nbs: 59
+    nms: 'true'
+    optimize: 'true'
+    optimizer: auto
+    overlap_mask: 'true'
+    patience: 90
+    plots: 'true'
+    pose: 7
+    pretrained: 'false'
+    profile: 'true'
+    rect: 'false'
+    resume: 'false'
+    retina_masks: 'true'
+    save: 'true'
+    save_conf: 'false'
+    save_crop: 'true'
+    save_dir: runs\\detect\\digit_LCD_classifier_model
+    save_frames: 'false'
+    save_hybrid: 'false'
+    save_json: 'false'
+    save_period: 0
+    save_txt: 'false'
+    scale: 0.9275514364659126
+    show: 'true'
+    show_boxes: 'true'
+    show_conf: 'false'
+    show_labels: 'true'
+    simplify: 'true'
+    single_cls: 'false'
+    split: val
+    stream_buffer: 'false'
+    task: detect
+    tracker: botsort.yaml
+    translate: 0.14355083105834135
+    val: 'false'
+    verbose: 'true'
+    vid_stride: 1
+    visualize: 'false'
+    warmup_epochs: 4
+    warmup_momentum: 1.5578080565780628
+    weight_decay: 0.0007475811233638361
+    workspace: 6

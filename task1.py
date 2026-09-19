@@ -33,8 +33,10 @@ import os
 import cv2
 import glob
 import matplotlib.pyplot as plt
+import numpy as np
+import math
 
-from ml_utils import load_YOLO
+from ml_utils import load_YOLO, crop_object_box, perspective_transform_image
 THERMO_LABEL = "thermometer"
 BPM_LABEL = "blood pressure monitor"
 MODEL_PATH = os.path.join("data/task1/task1_model/weights/","best.pt")
@@ -110,35 +112,49 @@ def process_task1(images):
             print(f"    [Task 1] {basename}.jpg -> NEGATIVE (no output)")
             continue
 
-        for box in result.boxes:
+        for i, box in enumerate(result.boxes):
             class_id = int(box.cls[0].item())
             # obtain label name
             label_name = class_names[class_id]
+            tensorBox = results[0].boxes.xyxy[i]
+            x1, y1, x2, y2 = map(int, tensorBox[:4])
+
+            # obtain width and height of bounding box
+            width = abs(x2 - x1)
+            height = abs(y2 - y1)
+
+
+
             # for each image if negative 
             print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
             if label_name == THERMO_LABEL:
                 # thermometer
 
-                # crop it
 
-                # orientate the image
-                final_image = img
+                # crop it to the bounding boxes
+                final_image = crop_object_box(tensorBox, img)
+                # orientate the image (rotate by theta optimal)
+
+                final_image = apply_perspective_transform(final_image, width, height)
 
 
                 out_name = f"thermo{img_num}.png"
-                cv2.imshow("thermometer", final_image)
                 print(f"    [Task 1] {basename}.jpg -> Thermometer -> {out_name}")
             elif label_name == BPM_LABEL:
-                # bpm
+                # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
 
+                # bpm (crop to bounding boxes)
+                final_image = crop_object_box(tensorBox, img)
+
+                # detect lcd screen using lcd screen detector
+                
                 # crop it (to lcd screen)
 
                 # orientate
 
 
-                final_image = img
+
                 out_name = f"lcd{img_num}.png"
-                cv2.imshow("bpm", final_image)
 
                 print(f"    [Task 1] {basename}.jpg -> BPM -> {out_name}")
             else:
@@ -148,4 +164,13 @@ def process_task1(images):
             output_path = os.path.join(OUTPUT_DIR, out_name)
             save_output(output_path, final_image, output_type='image')
 
-    
+
+
+def apply_perspective_transform(crop, width, height):
+    # convert to gray scale
+    img = crop.copy()
+    pts_src = np.float32([[50, 100], [400, 50], [450, 500], [20, 450]])
+
+    pts_dst = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
+
+    return perspective_transform_image(crop, pts_src, pts_dst, width, height)
