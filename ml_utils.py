@@ -16,6 +16,7 @@ import os
 import cv2
 import numpy as np
 import wandb
+import torch
 
 from wandb.integration.ultralytics import add_wandb_callback
 from ultralytics import YOLO
@@ -121,6 +122,11 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
     """
     Trains a model using YOLO (deep learning for object detection)
     """
+
+
+    print("GPU Available: ", torch.cuda.is_available())
+
+
     # initialise weights and biases run
     wandb.init(
         entity="jonahzclau-curtin-university",    
@@ -134,7 +140,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
 
     # add callback function
     add_wandb_callback(model, enable_model_checkpointing=True) # set up checkpoints so we can go back
-
+    
     final_training_data_path = str(Path(trainingDataPath).resolve())
     #train on digits dataset
     results = model.train(
@@ -144,7 +150,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
         lr0=float(configs["learning_rate"]),
         name=output_model_name,        
         save=True,
-        exist_ok = True
+        exist_ok = True,
     )
 
     # validation for the model

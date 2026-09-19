@@ -70,11 +70,11 @@ if __name__ == "__main__":
     printout_message()
 
     configs = read_config_txt()
-
     if len(sys.argv) == 2:
-        if sys.argv[0] == "1":
+        if sys.argv[1] == '1':
             train_model_bpm_thermometer(configs)
-        elif sys.argv[1] == "2":
+        elif sys.argv[1] == '2':
             train_lcd_display_detector(configs)
         else:
+            print("wrong system arguments")
             printout_message()
