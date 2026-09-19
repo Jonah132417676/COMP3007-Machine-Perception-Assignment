@@ -34,7 +34,9 @@ def save_output(output_path, content, output_type='txt'):
     else:
         print("Unsupported output type. Use 'txt' or 'image'.")
 
-def recognise_lcd_digits(sub_dir_path, lcd_name):
+# pad size trial and error for the model
+# 450
+def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450):
     """
     Recognise the digit from the image.
     
@@ -50,7 +52,6 @@ def recognise_lcd_digits(sub_dir_path, lcd_name):
     for dfile in digit_files:   
         img = cv2.imread(dfile)
         # add padding as model has trained on smaller lcd digits, not full
-        pad_size = 50
         padded_img = cv2.copyMakeBorder(
             img, 
             top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
@@ -70,7 +71,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name):
         if result is None or len(result.boxes) == 0:
             # negative produce no output
             final_image = None
-            print(f"    [Task 1] {dname}.jpg -> (no output)")
+            print(f"    [Task 3] {dname}.jpg -> (no output)")
             continue
         
         digit = -1
