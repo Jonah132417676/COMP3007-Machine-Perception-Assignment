@@ -17,7 +17,10 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ml_utils import load_YOLO
+from ml_utils import load_YOLO, hsv_threshold
+
+ALLOW_BPM_DEBUG = False
+ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task2")
 LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
@@ -77,8 +80,8 @@ def segment_lcd(image, lcd_name):
     pulseBoxes.sort(key=lambda box: box.xywh[0].tolist()[0])
 
     # then print 
-    
-    plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes)
+    if ALLOW_BPM_DEBUG:
+        plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes)
 
     # total ordered boxes, sys, dia then pulse
     totalOrderedBoxes = [*sysBoxes, *diaBoxes, *pulseBoxes]
@@ -114,66 +117,17 @@ def segment_thermo(image, thermo_name):
 
     h, w = image.shape[:2]
 
-    # convert to hsv (hue, sat, val) space img 
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    # threshold on hue to isolate red/pink tones
-    lower = (5, 75, 55) # trial and error
-    upper = (170, 255, 255)
-
-    mask = cv2.inRange(hsv, lower, upper)
-    result = cv2.bitwise_and(image, image, mask=mask)
-
-    plt.imshow(result)
-    plt.show()
-   
-    # clean up noise using morphology closed to remove holes
-    kernel_size = DILATE_KERNEL_SIZE
-    element = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
-    # dilate so detect lines better
-    morphed = cv2.dilate(result, element)
-
-    plt.imshow(morphed)
-    plt.show()
-
-    # pass this through edge -> line detection and detect the line
-    gray = cv2.cvtColor(morphed, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=40, maxLineGap=5)
-
-    # find the top of the resulting region is fluid end point by finding the key point
-    if lines is not None:
-        y_maximum_point = float("inf") # find the minimum deteted y point (end fluid point 0 is highest)
-        imageCopy = morphed.copy()
-
-        valid_lines = remove_outlier_lines_thermo(lines, w)
-
-        for line in valid_lines:
-            x1, y1, x2, y2 = line[0]
-            print(f"Line Segment Endpoints: Start({x1}, {y1}) -> End({x2}, {y2})")
-            
-            # draw the lines and endpoints on the original image
-            cv2.line(imageCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)  # line
-
-            # update maximum y point
-            if y2 < y_maximum_point:
-                y_maximum_point = y2
-
-            if y1 < y_maximum_point:
-                y_maximum_point = y1
-
-        plt.imshow(imageCopy)
-        plt.show()
-
-        zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
-        crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
+    x, y_maximum_point = get_highest_fluid_endpoint(image,  DILATE_KERNEL_SIZE, ALLOW_THERMO_DEBUG)
+    
+    zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
+    crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
+    if ALLOW_THERMO_DEBUG:
         plt.imshow(crop)
         plt.show()
-        save_output(os.path.join(sub_dir, "t.png"), crop, output_type='image')
 
-        print(f"    [Task 2] {thermo_name}: saved t.png to {sub_dir}")
-    else:
-        print(f"    [Task 2] CANNOT DETECT HOUGH LINES, cannot find fluid endpoint.")
+    print(f"    [Task 2] {thermo_name}: saved t.png to {sub_dir}")
+
+    save_output(os.path.join(sub_dir, "t.png"), crop, output_type='image')
 
     
     
@@ -287,12 +241,66 @@ def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tol
         # check if line is vertically angled
         dx = x2 - x1
         dy = y2 - y1
-        angle =  abs(np.degrees(np.arctan(dy/dx)))
+        angle =  abs(np.degrees(np.arctan2(dy, dx)))
         angledRule = 90 - angle_tolerance <= angle <= 90 + angle_tolerance
 
         if centeredRule and angledRule:
             valid_lines.append(line)
         else:
-            print(f" [Task 3] Line Removed Not Valid for centred for x end point relative pos, {relativeX1} and {relativeX2}): {centeredRule}, angled vertical: {angledRule}, for angle: {angle}")
+            print(f" [Task 2] Line Removed Not Valid for centred for x end point relative pos, {relativeX1} and {relativeX2}): {centeredRule}, angled vertical: {angledRule}, for angle: {angle}")
 
     return valid_lines
+
+def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool):
+    h, w = image.shape[:2]
+
+    result = hsv_threshold(image, (5, 75, 55), (170, 255, 255)) 
+    if allowDebug:
+        plt.imshow(result)
+        plt.show()
+    
+    # clean up noise using morphology closed to remove holes 
+    element = cv2.getStructuringElement(cv2.MORPH_RECT, (morphed_kernel_size, morphed_kernel_size))
+    # dilate so detect lines better
+    morphed = cv2.dilate(result, element)
+
+    if allowDebug:
+        plt.imshow(morphed)
+        plt.show()
+
+    
+    gray = cv2.cvtColor(morphed, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50, minLineLength=40, maxLineGap=5)
+
+    # find the top of the resulting region is fluid end point by finding the key point
+    if lines is not None:
+        y_maximum_point = float("inf") # find the minimum deteted y point (end fluid point 0 is highest)
+        x_point = float("inf")
+        imageCopy = morphed.copy()
+
+        valid_lines = remove_outlier_lines_thermo(lines, w)
+        for line in valid_lines:
+            x1, y1, x2, y2 = line[0]
+            print(f"Line Segment Endpoints: Start({x1}, {y1}) -> End({x2}, {y2})")
+            
+            # draw the lines and endpoints on the original image
+            cv2.line(imageCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)  # line
+
+            # update maximum y point
+            if y2 < y_maximum_point:
+                y_maximum_point = y2
+                x_point = x2
+
+            if y1 < y_maximum_point:
+                y_maximum_point = y1
+                x_point = x1
+
+        if allowDebug:
+            plt.imshow(imageCopy)
+            plt.show()
+
+        return x_point, y_maximum_point
+    else:
+        print(f"    [Task 2] CANNOT DETECT HOUGH LINES, cannot find fluid endpoint.")
+        return 0

@@ -148,6 +148,10 @@ def process_task1(images):
             elif label_name == BPM_LABEL:
                 # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
 
+                # OR use SIFT: 
+                #  SOLUTION: SHI TOMASI CORNER DETECTION
+                    # - then find the top, leftmost, rightmost and bottom corners (then orientate corners of lcd display)
+
                 # bpm (crop to bounding boxes)
                 final_image = crop_object_box(tensorBox, img)
 

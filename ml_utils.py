@@ -162,3 +162,10 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
 
     print("TRAINED YOLO MODEL")
     return model, results
+
+
+def hsv_threshold(image, lower = (5, 75, 55), upper = (170, 255, 255)):
+    # convert to hsv (hue, sat, val) space img 
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower, upper)
+    return cv2.bitwise_and(image, image, mask=mask)
