@@ -40,6 +40,11 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
+    improve task
+    3 lcd reading, so it segments the lcd digit, th
+    en pads to the background coluor (so its strong
+    er);2A;2A;2A
+    Pipeline: Input -> [Yolov8 Digit Detection] -> Output
     Input:
         - sub_dir_path -- path to the subdirectory
         - lcd_name -- name of lcd image
@@ -54,6 +59,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
     if not digit_files:
         print(f"    [Task 3] {lcd_name}: no digit images found.")
 
+    # for each digit image input
     for dfile in digit_files:   
         img = cv2.imread(dfile)
         # add padding as model has trained on smaller lcd digits, not full
@@ -67,15 +73,9 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
         
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
-        # NOT CORRECTLY IMPLEMENTED
+        # obtain the singular result
         result = yolo.predict(padded_img, retina_masks = True)[0]
         class_names = result.names
-        # maybe in the image find the nearest temperature reading (left most) in the image
-        # then find ticks distance between 
-        # find the distance between endpoint and that nearest temperature reading
-        # then distance yreadingcenter - yfluidendpoint
-        # find amount of ticks
-        # then read the reading (text) then add amount of ticks or take
 
         plt.imshow(result.plot())
         plt.show()
@@ -85,9 +85,10 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
             final_image = None
             print(f"    [Task 3] {dname}.jpg -> (no output)")
             continue
-        
-        digit = -1
 
+        # set default digit
+        digit = -1
+        # identify digit got the boxes
         for box in result.boxes:
             class_id = int(box.cls[0].item())
             # obtain label name
@@ -102,7 +103,16 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 
 def calculate_temperature(sub_dir_path, thermo_name):
+    """
+    Calculates the temperature from the reading.
 
+    Pipeline: Input -> [HSV Color Space] -> [Threshold Pink/Fluid Endpoint and obtain y position] -> [Canny Edge detector on normal image] -> [Hough lines detection] -> [Find average y distance between ticks] -> [Find the digit value from left most, bottom most tick number detector] -> [Find y distance] -> [Find how many ticks yDistance * ticks/ydist] -> [Then calculate temperature reading] -> output
+
+    Input:
+        - sub_dir_path -- path of the sub directory of the input image.
+        - thermo_name -- name of the thermoemter file
+    
+    """
     out_dir = os.path.join(OUTPUT_DIR, thermo_name)
 
     # check that t.png exists

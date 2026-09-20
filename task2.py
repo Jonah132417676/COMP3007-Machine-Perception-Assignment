@@ -102,8 +102,10 @@ def segment_thermo(image, thermo_name):
     """
     Segments the thermo for fluid and markings.
 
-    Pipeline: Input -> [HSV convert] -> [HSV thresholding pink/red] -> [Morphology Dilate (fluid wider)] -> [Gray Scale] -> [Canny Edge Detector] -> [Hough Lines Detector] -> [Find minimum y (highest) line point] -> [Crop height at that point] -> output
+    Pipeline: Input -> [HSV convert] -> [HSV thresholding pink/red] -> [Morphology Dilate (fluid wider)] -> [Gray Scale] -> [Canny Edge Detector] -> [Hough Lines Detector] -> [Filter Valid Lines] -> [Find minimum y (highest) line point] -> [Crop height at that point] -> output
     
+    Get rid of outlier lines from non main line
+
     Input:
         - image -- input thermometer image cropped
         - thermo_name -- the name of the thermometer  png
@@ -143,14 +145,15 @@ def segment_thermo(image, thermo_name):
     if lines is not None:
         y_maximum_point = float("inf") # find the minimum deteted y point (end fluid point 0 is highest)
         imageCopy = morphed.copy()
-        for line in lines:
+
+        valid_lines = remove_outlier_lines_thermo(lines, w)
+
+        for line in valid_lines:
             x1, y1, x2, y2 = line[0]
             print(f"Line Segment Endpoints: Start({x1}, {y1}) -> End({x2}, {y2})")
             
             # draw the lines and endpoints on the original image
             cv2.line(imageCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)  # line
-            cv2.circle(imageCopy, (x1, y1), 5, (0, 0, 255), -1)      # start
-            cv2.circle(imageCopy, (x2, y2), 5, (0, 0, 255), -1)      # end
 
             # update maximum y point
             if y2 < y_maximum_point:
@@ -252,3 +255,44 @@ def plot_points(boxes, result, colour = "red"):
         # obtain position
         xcenter, ycenter, width, height = box.xywh[0].tolist()
         plt.scatter(xcenter, ycenter, color=colour, s=40, zorder=5)
+
+
+def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tolerance = 20):
+    """
+    Filters the outlier lines that do not match thermometer oriented upright readings.
+        - removes non centered lines
+
+    Inputs:
+        - lines -- input lines
+        - width -- width of the thermometer (should be image width)
+        - x_tolerance -- tolerance of x relative positions of the width centred (x_tol * width)
+        - angle_tolerance -- tolerance of the angle vertical of 90 degrees (in degrees)
+    
+    Output:
+        - valid_lines -- the valid lines passed these tests
+    """
+    valid_lines = []
+     # get rid of lines that are not centred to the screen (remove outliers)
+    center_x = width // 2
+    x_tolerance = width * x_tolerance_mult
+
+    for line in lines:
+        
+        x1, y1, x2, y2 = line[0]
+        # Check if both endpoints fall within the x-range of the central fluid line
+        relativeX1 = x1 - center_x
+        relativeX2 = x2 - center_x
+        centeredRule = abs(relativeX1) <= x_tolerance and abs(relativeX2) <= x_tolerance
+
+        # check if line is vertically angled
+        dx = x2 - x1
+        dy = y2 - y1
+        angle =  abs(np.degrees(np.arctan(dy/dx)))
+        angledRule = 90 - angle_tolerance <= angle <= 90 + angle_tolerance
+
+        if centeredRule and angledRule:
+            valid_lines.append(line)
+        else:
+            print(f" [Task 3] Line Removed Not Valid for centred for x end point relative pos, {relativeX1} and {relativeX2}): {centeredRule}, angled vertical: {angledRule}, for angle: {angle}")
+
+    return valid_lines
