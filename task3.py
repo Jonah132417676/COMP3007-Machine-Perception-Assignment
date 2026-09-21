@@ -28,11 +28,11 @@ LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
 
 MORPHED_KERNEL_SIZE = 1
-LEFT_THERMO_TICK_THRESHOLD = 0.3
+LEFT_THERMO_TICK_THRESHOLD = 0.3 
 RIGHT_THERMO_TICK_THRESHOLD = 0.7
-Y_TICKS_GROUPING_THRESHOLD = 8
-THERMO_READING_DIGIT_Y_TOLERANCE = 10
-THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.8
+Y_TICKS_GROUPING_THRESHOLD = 6
+THERMO_READING_DIGIT_Y_TOLERANCE = 20
+THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.75
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -154,16 +154,19 @@ def calculate_temperature(sub_dir_path, thermo_name):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # isolate black ticks to remove other details lines
     _, mask = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-    plt.imshow(mask)
-    plt.show()
+    if ALLOW_THERMO_DEBUG:
+        plt.imshow(mask)
+        plt.show()
 
     # remove sides (numbers may detect lines so remove quuarter from either side)
     left_bound = int(w * LEFT_THERMO_TICK_THRESHOLD)
     right_bound = int(w * RIGHT_THERMO_TICK_THRESHOLD)
     mask[:, 0:left_bound] = 0
-    mask[:, right_bound:w] = 0    
-    plt.imshow(mask)
-    plt.show()
+    mask[:, right_bound:w] = 0  
+
+    if ALLOW_THERMO_DEBUG:  
+        plt.imshow(mask)
+        plt.show()
 
 
     lines = cv2.HoughLinesP(
@@ -184,24 +187,26 @@ def calculate_temperature(sub_dir_path, thermo_name):
 
 
             cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        plt.imshow(imgCopy)
-        plt.show()
+
+        if ALLOW_THERMO_DEBUG:
+            plt.imshow(imgCopy)
+            plt.show()
 
         # obtain the average y distance per tick
-        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image)
+        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image, ALLOW_THERMO_DEBUG)
 
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
         # model used heavy augmentation as there wasnt many samples
         number_reading_detector = load_YOLO(THERMO_NUMBER_READING_DETECTOR_MODEL_PATH)
         result = number_reading_detector.predict(image, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True)[0]
-
-        plt.imshow(result.plot())
-        plt.show()
+        if ALLOW_THERMO_DEBUG:
+            plt.imshow(result.plot())
+            plt.show()
 
         print(f"    [Task 3] Thermo Reading Detector Amount Boxes: {len(result.boxes)}")
 
         # average all temperatures (on left side so don't incldue fahrenheit reading)
-        temperatures = discover_temperature_readings(result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE)
+        temperatures = discover_temperature_readings(image, result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE, ALLOW_THERMO_DEBUG)
         # find the average temperature calculation for all left side box readings relative
         if len(temperatures) > 0:
             avgTemperature = round(np.array(temperatures).mean())
@@ -215,7 +220,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
         print("     [Task 3] Thermo lines not detected ticks.")
          
 
-def discover_temperature_readings(result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance=10):
+def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance, showDebug):
     temperatures = []
     x_end_point, y_maximum_point = fluidEndpointPos
     class_names = result.names
@@ -257,9 +262,15 @@ def discover_temperature_readings(result, fluidEndpointPos: tuple[float], yDistP
     # add final numbers
     grouped_numbers.append(current_group)
 
-
+    imgCopy = image.copy()
     for group in grouped_numbers:
-        print(f"    [Task 3] Thermo Reading: Group={group}")
+        # remove non 2 length groups
+        if len(group) == 2:
+            print(f"    [Task 3] Thermo Reading: Group={group}")
+        else:
+            print(f"    [Task 3] Group Removed as not two digits={group}")
+            continue
+
         # sort the digits from increasing x positions order
         group.sort(key=lambda item: item['x'])
         # combine class labels "2" + "1"
@@ -271,9 +282,11 @@ def discover_temperature_readings(result, fluidEndpointPos: tuple[float], yDistP
         # calculate average yCenter
         avgYCenter = sum(item['y'] for item in group) / len(group)
 
+        cv2.circle(imgCopy, (int(x_end_point), int(avgYCenter)), 3, color=[255,0,0])
+
         yDifference = abs(avgYCenter - y_maximum_point)
         rawTicks = yDifference / yDistPerTick # conversion
-        ticks = round(rawTicks)
+        ticks = rawTicks
 
         # round to closest int
         isFluidAboveReading = y_maximum_point < avgYCenter # (y is greater downwards)
@@ -284,6 +297,10 @@ def discover_temperature_readings(result, fluidEndpointPos: tuple[float], yDistP
 
         print(f"    [Task 3] THERMO Reading: tbase={t_base}, ticksBetween={ticks}, fluidAbove={isFluidAboveReading}, temperatureCalculated={temperature}")
 
+    if showDebug:
+        cv2.circle(imgCopy, (int(x_end_point), int(y_maximum_point)), 3, color=[0,255,0])
+        plt.imshow(imgCopy)
+        plt.show()
 
     return temperatures
    
@@ -340,7 +357,7 @@ def filter_horizontal_lines(lines, angle_tolerance):
 
     return valid_lines
 
-def calculate_average_y_dist_per_tick(lines, image):
+def calculate_average_y_dist_per_tick(lines, image, allowDebug):
 
     # to calculate ticks per y, find the average distance between each tick
     # find y positions of each line
@@ -362,14 +379,16 @@ def calculate_average_y_dist_per_tick(lines, image):
 
     for y in cleanedYPositions:
         cv2.circle(imgCopy, center=(int(w//2), int(y)), radius=5, color=[255, 0, 0])
-    plt.imshow(imgCopy)
-    plt.show()
+    if allowDebug:
+        plt.imshow(imgCopy)
+        plt.show()
 
     avgYDistBetweenTicks = 0
     for i in range(0, len(cleanedYPositions) - 1):
         avgYDistBetweenTicks += abs(cleanedYPositions[i] - cleanedYPositions[i + 1]) # difference between sorted
 
     avgYDistBetweenTicks /= len(cleanedYPositions)
+
     print(f"     [Task 3] Thermo calculated average y dist between ticks: {avgYDistBetweenTicks}")
     return avgYDistBetweenTicks
     
