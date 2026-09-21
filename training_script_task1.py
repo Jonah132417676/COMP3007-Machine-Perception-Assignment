@@ -60,7 +60,7 @@ def printout_message():
     print("USAGE: training_script_task1.py <task number>")
     print("""
     Example:
-        python3 assignment.py 1
+        python3 training_script_task1.py 1
 
         1 - train model bpm thermometer
         2 - train lcd detector

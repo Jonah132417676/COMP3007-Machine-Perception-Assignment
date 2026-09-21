@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 8
+names: ['-10', '-20', '0', '10', '20', '30', '40', '50']
+
+roboflow:
+  workspace: jonah-lau
+  project: thermometer_reading_detector
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/jonah-lau/thermometer_reading_detector/dataset/1
