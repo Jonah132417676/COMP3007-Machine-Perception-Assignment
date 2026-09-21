@@ -24,7 +24,8 @@ ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task3")
-LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
+LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
+THERMO_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","thermo_reading_detecto_celcius.pt")
 
 MORPHED_KERNEL_SIZE = 1
 LEFT_THERMO_TICK_THRESHOLD = 0.3
@@ -118,7 +119,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
     """
     Calculates the temperature from the reading.
 
-    Pipeline: Input -> [HSV Color Space] -> [Threshold Pink/Fluid Endpoint and obtain y position] -> [Canny Edge detector on normal image] -> [Hough lines detection] -> [Find average y distance between ticks] -> [Find the digit value from left most, bottom most tick number detector] -> [Find y distance] -> [Find how many ticks yDistance * ticks/ydist] -> [Then calculate temperature reading] -> output
+    Pipeline: Input -> [HSV Color Space] -> [Threshold Pink/Fluid Endpoint and obtain y position] -> [Isolate ticks from number values] -> [Hough lines detection] -> [Filter horizontal and groupings] -> [Find average y distance between ticks] -> [Find the digit value from left most, bottom most tick number detector] -> [Find y distance] -> [Find how many ticks yDistance * ticks/ydist] -> [Then calculate temperature reading] -> output
 
     Input:
         - sub_dir_path -- path of the sub directory of the input image.
@@ -138,7 +139,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
     h, w = image.shape[:2]
     # find fluid end point position (y).
     # convert to hsv (hue, sat, val) space img 
-    x, y_maximum_point = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, ALLOW_THERMO_DEBUG)
+    x_end_point, y_maximum_point = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, ALLOW_THERMO_DEBUG)
     
     if ALLOW_THERMO_DEBUG:
         imgCopy = image.copy()
@@ -188,27 +189,53 @@ def calculate_temperature(sub_dir_path, thermo_name):
         avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image)
 
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
+        # model used heavy augmentation as there wasnt many samples
+        thermo_reading_detector = load_YOLO(THERMO_READING_DETECTOR_MODEL_PATH)
+        result = thermo_reading_detector.predict(image, retina_masks = True)[0]
 
-        # then calculate temperature
-        t_base = 10 # temperature reading below
-        yDifference = 237 - y_maximum_point
-        ticks = yDifference / avgYDistPerTick # conversion
+        plt.imshow(result.plot())
+        plt.show()
 
-        # round to closest int
-        isFluidAboveReading = True
-        ticksMult = 1 if isFluidAboveReading else -1 # if fluid is above reading, add, else subtract as its below
-        # temperature = base reading + ticksCounted * add or subtract
-        temperature = round(t_base + ticks * ticksMult)
-    
-        save_output(os.path.join(out_dir, "t.txt"), str(temperature), output_type="txt")    
-        print(f"    [Task 3] {thermo_name}: esimated temperature = {temperature}C, y_maximum_point{y_maximum_point}")
+        # average all temperatures (on left side so don't incldue fahrenheit reading)
+        temperatures = calculate_temperatures(result, (x_end_point, y_maximum_point), avgYDistPerTick)
+        # find the average temperature calculation for all left side box readings relative
+        avgTemperature = round(np.array(temperatures).mean())
+
+        save_output(os.path.join(out_dir, "t.txt"), str(avgTemperature), output_type="txt")    
+        print(f"    [Task 3] {thermo_name}: esimated temperature = {avgTemperature}C, y_maximum_point{y_maximum_point}")
 
     else:
         print("     [Task 3] Thermo lines not detected ticks.")
          
 
+def calculate_temperatures(result, fluidEndpointPos: tuple[float], yDistPerTick):
+    temperatures = []
+    x_end_point, y_maximum_point = fluidEndpointPos
+    class_names = result.names
 
+    for box in result.boxes:
+        class_id = int(box.cls[0].item())
 
+        x1, y1, x2, y2 = box.xyxy[0]
+        xCenter = (x1 + x2) // 2
+        yCenter = (y1 + y2) // 2
+
+        if xCenter < x_end_point:
+            # then calculate temperature
+            t_base = int(class_names[class_id]) # temperature reading below
+            yDifference = abs(yCenter - y_maximum_point)
+            ticks = yDifference / yDistPerTick # conversion
+
+            # round to closest int
+            isFluidAboveReading = y_maximum_point < yCenter # (y is greater downwards)
+            ticksMult = 1 if isFluidAboveReading else -1 # if fluid is above reading, add, else subtract as its below
+            # temperature = base reading + ticksCounted * add or subtract
+            temperature = t_base + ticks * ticksMult
+            temperatures.append(temperature)
+
+            print(f"    [Task 3] THERMO Reading: tbase={t_base}, ticksBetween={ticks}, fluidAbove={isFluidAboveReading}, temperatureCalculated={temperature}")
+
+    return temperatures
    
 
 def run_task3(image_path, config):

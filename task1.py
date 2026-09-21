@@ -86,6 +86,14 @@ def run_task1(image_path, config):
     process_task1(images)
    
 def process_task1(images):
+    """
+    
+    Pipeline: Input -> [BPM THERMO Detector] -> 
+    
+    -> BPM -> [LCD Display Detector] -> [Crop Display] -> [Use orientated image for keypoint detection of four corners] -> [SIFT corner detection] -> [Perspective Transform]
+    -> Thermo -> [Crop Thermometer] -> [Use orientated image SIFT for keypoint detection] -> [Perspective transform]
+    
+    """
     # load model ->
 
     bpm_model_detector = load_YOLO(BPM_THERMOMETER_DEETECTOR_MODEL_PATH)
