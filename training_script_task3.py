@@ -11,6 +11,8 @@ Last Modified: 2026-16-09
 
 """
 import os
+import sys
+
 from ultralytics import YOLO
 
 from ml_utils import train_YOLO, read_config_txt
@@ -18,8 +20,8 @@ from ml_utils import train_YOLO, read_config_txt
 LCD_TRAIN_DATA_PATH = os.path.join("training_data/task3/Task 3 Dataset LCD Digits/","data.yaml")
 LCD_DIGIT_MODEL_NAME = "digit_LCD_classifier_model"
 
-THERMO_READING_TRAIN_DATA_PATH = os.path.join("training_data/task3/Task 3 Dataset Thermometer Reading/","data.yaml")
-THERMO_READING_MODEL_NAME = "thermo_reading_celcius_model"
+THERMO_READING_TRAIN_DATA_PATH = os.path.join("training_data/task3/Task 3 Dataset Number Reading/","data.yaml")
+THERMO_READING_MODEL_NAME = "number_reading_model"
 def train_model_BPM_reading(configs: dict) -> YOLO:
     """
     Train the BPM reading model digits.

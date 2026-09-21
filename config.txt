@@ -3,7 +3,7 @@ Surname: Lau
 GivenNames: Zhong Cheng
 StudentID: 22212117
 
-# Hyperparameters 
+# Training Hyperparameters 
 model:yolov8n.pt
 learning_rate: 0.001
 batch_size:16

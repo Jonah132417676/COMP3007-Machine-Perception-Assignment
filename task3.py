@@ -25,12 +25,14 @@ ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task3")
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
-THERMO_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","thermo_reading_detecto_celcius.pt")
+THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
 
 MORPHED_KERNEL_SIZE = 1
 LEFT_THERMO_TICK_THRESHOLD = 0.3
 RIGHT_THERMO_TICK_THRESHOLD = 0.7
 Y_TICKS_GROUPING_THRESHOLD = 8
+THERMO_READING_DIGIT_Y_TOLERANCE = 10
+THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.8
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -143,7 +145,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
     
     if ALLOW_THERMO_DEBUG:
         imgCopy = image.copy()
-        cv2.circle(imgCopy, (x , y_maximum_point), 3, color=[255, 0, 0])
+        cv2.circle(imgCopy, (x_end_point , y_maximum_point), 3, color=[255, 0, 0])
         plt.imshow(imgCopy)
         plt.show()
   
@@ -190,50 +192,98 @@ def calculate_temperature(sub_dir_path, thermo_name):
 
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
         # model used heavy augmentation as there wasnt many samples
-        thermo_reading_detector = load_YOLO(THERMO_READING_DETECTOR_MODEL_PATH)
-        result = thermo_reading_detector.predict(image, retina_masks = True)[0]
+        number_reading_detector = load_YOLO(THERMO_NUMBER_READING_DETECTOR_MODEL_PATH)
+        result = number_reading_detector.predict(image, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True)[0]
 
         plt.imshow(result.plot())
         plt.show()
 
-        # average all temperatures (on left side so don't incldue fahrenheit reading)
-        temperatures = calculate_temperatures(result, (x_end_point, y_maximum_point), avgYDistPerTick)
-        # find the average temperature calculation for all left side box readings relative
-        avgTemperature = round(np.array(temperatures).mean())
+        print(f"    [Task 3] Thermo Reading Detector Amount Boxes: {len(result.boxes)}")
 
-        save_output(os.path.join(out_dir, "t.txt"), str(avgTemperature), output_type="txt")    
-        print(f"    [Task 3] {thermo_name}: esimated temperature = {avgTemperature}C, y_maximum_point{y_maximum_point}")
+        # average all temperatures (on left side so don't incldue fahrenheit reading)
+        temperatures = discover_temperature_readings(result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE)
+        # find the average temperature calculation for all left side box readings relative
+        if len(temperatures) > 0:
+            avgTemperature = round(np.array(temperatures).mean())
+
+            save_output(os.path.join(out_dir, "t.txt"), str(avgTemperature), output_type="txt")    
+            print(f"    [Task 3] {thermo_name}: esimated temperature = {avgTemperature} Celcius, y_maximum_point={y_maximum_point}")
+        else:
+            print(f"    [Task 3] {thermo_name}: WARNING - No valid left-side temperature readings detected. Skipping output.")
 
     else:
         print("     [Task 3] Thermo lines not detected ticks.")
          
 
-def calculate_temperatures(result, fluidEndpointPos: tuple[float], yDistPerTick):
+def discover_temperature_readings(result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance=10):
     temperatures = []
     x_end_point, y_maximum_point = fluidEndpointPos
     class_names = result.names
 
+    # remove right side digits (fahrenheit)
+    valid_digits = []
     for box in result.boxes:
-        class_id = int(box.cls[0].item())
+        class_id = int(box.cls[0].cpu().item())
+        digit_str = class_names[class_id]
+        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+        xCenter = float((x1 + x2) / 2)
+        yCenter = float((y1 + y2) / 2)
 
-        x1, y1, x2, y2 = box.xyxy[0]
-        xCenter = (x1 + x2) // 2
-        yCenter = (y1 + y2) // 2
+        leftSideRule = xCenter < x_end_point
 
-        if xCenter < x_end_point:
-            # then calculate temperature
-            t_base = int(class_names[class_id]) # temperature reading below
-            yDifference = abs(yCenter - y_maximum_point)
-            ticks = yDifference / yDistPerTick # conversion
+        if leftSideRule:
+            print(f"    [Task 3] THERMO Digit Added Valid (Left side): {digit_str}")
+            valid_digits.append({ 'digit': digit_str, 'x': xCenter, 'y': yCenter})
+        else:
+            print(f"    [Task 3] THERMO Digit REMOVED (Right side): {digit_str}")
+    
+    # if no left digits, return nothing
+    if not valid_digits:
+        return temperatures
 
-            # round to closest int
-            isFluidAboveReading = y_maximum_point < yCenter # (y is greater downwards)
-            ticksMult = 1 if isFluidAboveReading else -1 # if fluid is above reading, add, else subtract as its below
-            # temperature = base reading + ticksCounted * add or subtract
-            temperature = t_base + ticks * ticksMult
-            temperatures.append(temperature)
+    # group similar y positions to actual values
 
-            print(f"    [Task 3] THERMO Reading: tbase={t_base}, ticksBetween={ticks}, fluidAbove={isFluidAboveReading}, temperatureCalculated={temperature}")
+    # sort from increasing order of y positions
+    valid_digits.sort(key=lambda item: item['y'])
+    grouped_numbers = [] 
+    current_group = [valid_digits[0]]
+    for i in range(1, len(valid_digits)):
+        # if within range combine to a group
+        if abs(valid_digits[i]['y'] - current_group[-1]['y']) < y_tolerance:
+            current_group.append(valid_digits[i])
+        else:
+            grouped_numbers.append(current_group)
+            current_group = [valid_digits[i]]
+    # add final numbers
+    grouped_numbers.append(current_group)
+
+
+    for group in grouped_numbers:
+        print(f"    [Task 3] Thermo Reading: Group={group}")
+        # sort the digits from increasing x positions order
+        group.sort(key=lambda item: item['x'])
+        # combine class labels "2" + "1"
+        t_base_str = "".join([item['digit'] for item in group])
+
+        # then calculate temperature
+        t_base = int(t_base_str) # temperature reading below
+
+        # calculate average yCenter
+        avgYCenter = sum(item['y'] for item in group) / len(group)
+
+        yDifference = abs(avgYCenter - y_maximum_point)
+        rawTicks = yDifference / yDistPerTick # conversion
+        ticks = round(rawTicks)
+
+        # round to closest int
+        isFluidAboveReading = y_maximum_point < avgYCenter # (y is greater downwards)
+        ticksMult = 1 if isFluidAboveReading else -1 # if fluid is above reading, add, else subtract as its below
+        # temperature = base reading + ticksCounted * add or subtract
+        temperature = t_base + ticks * ticksMult
+        temperatures.append(temperature)
+
+        print(f"    [Task 3] THERMO Reading: tbase={t_base}, ticksBetween={ticks}, fluidAbove={isFluidAboveReading}, temperatureCalculated={temperature}")
+
 
     return temperatures
    
