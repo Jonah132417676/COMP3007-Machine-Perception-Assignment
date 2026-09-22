@@ -265,10 +265,11 @@ def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float],
     imgCopy = image.copy()
     for group in grouped_numbers:
         # remove non 2 length groups
-        if len(group) == 2:
+        atleast1or2DigitRule = len(group) == 1 or len(group) == 2 # 0 or 20
+        if atleast1or2DigitRule:
             print(f"    [Task 3] Thermo Reading: Group={group}")
         else:
-            print(f"    [Task 3] Group Removed as not two digits={group}")
+            print(f"    [Task 3] Group Removed as atleast1or2DigitRule={atleast1or2DigitRule}, ")
             continue
 
         # sort the digits from increasing x positions order
