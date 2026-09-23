@@ -20,7 +20,7 @@ import numpy as np
 from ml_utils import load_YOLO, hsv_threshold
 from task2 import get_highest_fluid_endpoint
 
-ALLOW_BPM_DEBUG = False
+ALLOW_BPM_DEBUG = True
 ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task3")
@@ -50,7 +50,7 @@ def save_output(output_path, content, output_type='txt'):
 
 # pad size trial and error for the model
 # 450
-def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color = [103, 140, 160]):
+def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, padding_color = [103, 140, 160]):
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
@@ -82,7 +82,6 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
             top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
             borderType=cv2.BORDER_CONSTANT, 
             value=padding_color
-            
         )
         
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
@@ -91,7 +90,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
         result = yolo.predict(padded_img, retina_masks = True)[0]
         class_names = result.names
 
-        if ALLOW_BPM_DEBUG:
+        if allowDebug:
             plt.imshow(result.plot())
             plt.show()
 
@@ -117,7 +116,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, pad_size = 450, padding_color =
 
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 
-def calculate_temperature(sub_dir_path, thermo_name):
+def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
     """
     Calculates the temperature from the reading.
 
@@ -141,9 +140,9 @@ def calculate_temperature(sub_dir_path, thermo_name):
     h, w = image.shape[:2]
     # find fluid end point position (y).
     # convert to hsv (hue, sat, val) space img 
-    x_end_point, y_maximum_point = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, ALLOW_THERMO_DEBUG)
+    x_end_point, y_maximum_point = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, allowDebug)
     
-    if ALLOW_THERMO_DEBUG:
+    if allowDebug:
         imgCopy = image.copy()
         cv2.circle(imgCopy, (x_end_point , y_maximum_point), 3, color=[255, 0, 0])
         plt.imshow(imgCopy)
@@ -154,7 +153,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # isolate black ticks to remove other details lines
     _, mask = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-    if ALLOW_THERMO_DEBUG:
+    if allowDebug:
         plt.imshow(mask)
         plt.show()
 
@@ -164,7 +163,7 @@ def calculate_temperature(sub_dir_path, thermo_name):
     mask[:, 0:left_bound] = 0
     mask[:, right_bound:w] = 0  
 
-    if ALLOW_THERMO_DEBUG:  
+    if allowDebug:  
         plt.imshow(mask)
         plt.show()
 
@@ -188,25 +187,25 @@ def calculate_temperature(sub_dir_path, thermo_name):
 
             cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        if ALLOW_THERMO_DEBUG:
+        if allowDebug:
             plt.imshow(imgCopy)
             plt.show()
 
         # obtain the average y distance per tick
-        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image, ALLOW_THERMO_DEBUG)
+        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image, allowDebug)
 
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
         # model used heavy augmentation as there wasnt many samples
         number_reading_detector = load_YOLO(THERMO_NUMBER_READING_DETECTOR_MODEL_PATH)
         result = number_reading_detector.predict(image, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True)[0]
-        if ALLOW_THERMO_DEBUG:
+        if allowDebug:
             plt.imshow(result.plot())
             plt.show()
 
         print(f"    [Task 3] Thermo Reading Detector Amount Boxes: {len(result.boxes)}")
 
         # average all temperatures (on left side so don't incldue fahrenheit reading)
-        temperatures = discover_temperature_readings(image, result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE, ALLOW_THERMO_DEBUG)
+        temperatures = discover_temperature_readings(image, result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE, allowDebug)
         # find the average temperature calculation for all left side box readings relative
         if len(temperatures) > 0:
             avgTemperature = round(np.array(temperatures).mean())
@@ -304,37 +303,6 @@ def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float],
         plt.show()
 
     return temperatures
-   
-
-def run_task3(image_path, config):
-
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    # find all the .sub directories in the input directory
-    if not os.path.isdir(image_path):
-        print(f"    [Task 3] Input path does not exist: {image_path}")
-
-    # obtain all sub directories
-    sub_dirs = sorted([d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))])
-
-    if not sub_dirs:
-        print(f"    [Task 3] No sub directories found in input")
-
-    print(f"    [Task 3] Found {len(sub_dirs)} sub-directoy(ies).")
-
-    process_task3(sub_dirs, image_path)
-   
-def process_task3(sub_dirs, image_path):
-
-    for dname in sub_dirs:
-        sub_dir_path = os.path.join(image_path, dname)
-
-        if dname.startswith("lcd"):
-            recognise_lcd_digits(sub_dir_path, dname)
-        elif dname.startswith("thermo"):
-            calculate_temperature(sub_dir_path, dname)
-        else:
-            print(f"    [Task 3] Unknown sub-directory: {dname}. Skipping.")
 
 def filter_horizontal_lines(lines, angle_tolerance):
     
@@ -420,3 +388,33 @@ def group_similar_y(yPositionsSorted, groupingThreshold):
 
     return result
 
+
+def run_task3(image_path, config):
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # find all the .sub directories in the input directory
+    if not os.path.isdir(image_path):
+        print(f"    [Task 3] Input path does not exist: {image_path}")
+
+    # obtain all sub directories
+    sub_dirs = sorted([d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))])
+
+    if not sub_dirs:
+        print(f"    [Task 3] No sub directories found in input")
+
+    print(f"    [Task 3] Found {len(sub_dirs)} sub-directoy(ies).")
+
+    process_task3(sub_dirs, image_path, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
+   
+def process_task3(sub_dirs, image_path, allowDebugBPM, allowDebugTHERMO):
+
+    for dname in sub_dirs:
+        sub_dir_path = os.path.join(image_path, dname)
+
+        if dname.startswith("lcd"):
+            recognise_lcd_digits(sub_dir_path, dname, allowDebugBPM)
+        elif dname.startswith("thermo"):
+            calculate_temperature(sub_dir_path, dname, allowDebugTHERMO)
+        else:
+            print(f"    [Task 3] Unknown sub-directory: {dname}. Skipping.")

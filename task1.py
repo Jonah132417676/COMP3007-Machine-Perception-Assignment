@@ -1,9 +1,7 @@
 """
-
 task1.py
 
 python3 assignment.py task1 data/testing/validation/task1 config.txt
-
 
 Detect if in the image has bpm, thermometer or nothing, then crop it and orientate it for its output. 
 Object Detection: YOLO 
@@ -16,12 +14,9 @@ Object Detection: YOLO
 1. Determine if valid medical device is present.
 2. Classify the device as either a blood presure monitor or a wall thermometer.
 3. Extract the reading region.
-4. Apply geometric correction.
-5. Save the img.
-BPM - lcd screen
-thermometer - cropped therometer image
-negative - no output
-
+4. Use sift for keypoint descriptors between a template "bpm" or "thermometer"
+5. Warp the image
+6. Save the img.
 
 Author: Zhong Cheng Lau 
 
@@ -164,6 +159,17 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug):
             save_output(output_path, final_image, output_type='image')
 
 def process_thermometer_image(img, tensorBox, allowDebug):
+    """
+    For a thermometer image. Map the thermometer to the template orientated lcd screen through SIFT.
+
+    Input:
+        - img -- image to warp
+        - tensorBox -- box data on prediction of bpm
+    
+    Output:
+        - final_image -- the final result image
+    
+    """
     # thermometer
     # obtain width and height of bounding box
     
@@ -181,12 +187,19 @@ def process_thermometer_image(img, tensorBox, allowDebug):
     return final_image
 
 def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
+    """
+    For a bpm image, detect the lcd and crop it. Then map the cropped lcd to the template orientated lcd screen through SIFT.
 
+    Input:
+        - img -- image to warp
+        - tensorBox -- box data on prediction of bpm
+    
+    Output:
+        - final_image -- the final result image
+    
+    """
     # read lcd template
     templateLCDImage = cv2.imread(TEMPLATE_LCD_PATH)
-
-    # base template
-    heightLCD, widthLCD = templateLCDImage.shape[:2]
 
     # bpm (crop to bounding boxes)
     bpmImg = crop_object_box(tensorBox, img)
@@ -206,7 +219,13 @@ def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
 def sift_keypoint_perspective_warp(image1, image2, allowDebug):
     """
     Maps the keypoints of image2 to the dimensions of image1.
-    
+
+    Input:
+        - image1 -- an image to match (template)
+        - image2 -- an image to match (warped)
+
+    Output:
+        - final_image -- the final warpped image
     """
 
     goodMatches, kp1, kp2 = obtain_good_matches(image1, image2)
@@ -244,6 +263,14 @@ def obtain_good_matches(image1, image2):
     """
     Find the best matches between two images. 
     
+    Input:
+        - image1 -- an image to match
+        - image2 -- an image to match
+    
+    Output:
+        - good - the good matches found through Lowe's ratio test
+        - kp1 - key point locations on image 1
+        - kp2 - key point locations on image 2
     
     
     """
@@ -269,4 +296,3 @@ def obtain_good_matches(image1, image2):
             good.append(m)
 
     return good, kp1, kp2
-

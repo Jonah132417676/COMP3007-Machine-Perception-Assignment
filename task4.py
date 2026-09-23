@@ -54,29 +54,27 @@ def get_thermo_reading():
     return str(-999)
 
 def process_task4(images):
-    # DUMMY LOGIC IMPLEMENT PROPERLY
-    indices = list(range(len(images)))
-    random.shuffle(indices)
-    negative_idx = indices[0]
-    thermo_idx = indices[1]
-    bpm_indicies = indices[2:]
-
+  
     for i, img_file in enumerate(images):
         basename = os.path.splitext(os.path.basename(img_file))[0]
 
-        if i == negative_idx:
-            # negative produces no output
-            print(f"    [Task 4] {basename}.jpg -> NEGATIVE (no output)")
-            continue
-        elif i == thermo_idx:
+        # identification [TASK 1] and crop
+
+
+      
+        if i == "thermometer":
             # themoemeter
             reading = get_thermo_reading()
             line = f"thermo {reading}"
             print(f"    [Task 4] {basename}.jpg -> {line}")
-        else:
+        elif i == "bpm":
             # BPM
             reading = get_bpm_reading()
             line = f"bpm {reading}"
             print(f"    [Task 4] {basename}.jpg -> {line}")
+        else:
+            # negative produces no output
+            print(f"    [Task 4] {basename}.jpg -> NEGATIVE (no output)")
+            continue
 
         save_output(os.path.join(OUTPUT_DIR, f"{basename}.txt"), line, output_type = "txt")

@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt
 
 from ml_utils import load_YOLO, hsv_threshold
 
-ALLOW_BPM_DEBUG = False
+ALLOW_BPM_DEBUG = True
 ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task2")
-LCD_MODEL_PATH = os.path.join("data/task3/digit_LCD_classifier_model/","lcd_digit_detector.pt")
+LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
 HUE_THRESHOLD_THERMOMETER = 70
 THERMO_ZOOM_DIVIDER = 15
@@ -45,7 +45,7 @@ def save_output(output_path, content, output_type='txt'):
 
 
 
-def segment_lcd(image, lcd_name):
+def segment_lcd(image, lcd_name, allowDebug):
     """
     Segments the image into individual digits.
 
@@ -80,7 +80,7 @@ def segment_lcd(image, lcd_name):
     pulseBoxes.sort(key=lambda box: box.xywh[0].tolist()[0])
 
     # then print 
-    if ALLOW_BPM_DEBUG:
+    if allowDebug:
         plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes)
 
     # total ordered boxes, sys, dia then pulse
@@ -101,7 +101,7 @@ def segment_lcd(image, lcd_name):
         save_output(os.path.join(sub_dir, f"d{i+1}.png"), digit_img, output_type='image')
         print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
     
-def segment_thermo(image, thermo_name):
+def segment_thermo(image, thermo_name, allowDebug):
     """
     Segments the thermo for fluid and markings.
 
@@ -117,57 +117,17 @@ def segment_thermo(image, thermo_name):
 
     h, w = image.shape[:2]
 
-    x, y_maximum_point = get_highest_fluid_endpoint(image,  DILATE_KERNEL_SIZE, ALLOW_THERMO_DEBUG)
+    x, y_maximum_point = get_highest_fluid_endpoint(image,  DILATE_KERNEL_SIZE, allowDebug)
     
     zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
     crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
-    if ALLOW_THERMO_DEBUG:
+    if allowDebug:
         plt.imshow(crop)
         plt.show()
 
     print(f"    [Task 2] {thermo_name}: saved t.png to {sub_dir}")
 
     save_output(os.path.join(sub_dir, "t.png"), crop, output_type='image')
-
-    
-    
-def run_task2(image_path, config):
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    # find all the .png images in the input directory
-    png_files = sorted(glob.glob(os.path.join(image_path, "*.png")))
-
-    if not png_files:
-        print(" [Task 2] No input images found.")
-        return
-
-    print(f"    [Task 2] Found {len(png_files)} input images(s).")
-
-    process_task2(png_files)
-
-def process_task2(png_files):
-    """
-    Decides which process to use for lcd and thermometers.
-
-    Input:
-        - png_files -- input files to pass
-    
-    """
-    for file_path in png_files:
-        fname = os.path.basename(file_path)
-        base_name = os.path.splitext(fname)[0] # lcd2 or thermo1
-
-        img = cv2.imread(file_path)
-        if img is None or img.size == 0:
-            print(f"    [Task 2] Could not read {fname}. Skipping")
-            continue
-
-        if fname.startswith("lcd"):
-            segment_lcd(img, base_name)
-        elif fname.startswith("thermo"):
-            segment_thermo(img, base_name)
-        else:
-            print(f"    [Task 2] unknown file type: {fname}. Skipping")
 
 
 def plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes):
@@ -252,6 +212,19 @@ def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tol
     return valid_lines
 
 def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool):
+    """
+    Obtains the highest fluid point on the thermometer image.
+
+    Input -> [HSV Threshold for pink fluid] -> [Dilate Fluid] -> [Canny Edge Detection] -> [Hough Lines] -> [Obtain maximum y on the hough lines] -> Output
+
+    Input:
+        - image -- the thermometer image
+        - morphed_kernel_size -- the size of the kernel
+    
+    Output:
+        - x_point -- the x coordinate of the maximum y detected point
+        - y_maximum_point -- the y coorindate of the maximum detected point y
+    """
     h, w = image.shape[:2]
 
     result = hsv_threshold(image, (5, 75, 55), (170, 255, 255)) 
@@ -304,3 +277,41 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
     else:
         print(f"    [Task 2] CANNOT DETECT HOUGH LINES, cannot find fluid endpoint.")
         return 0
+    
+def run_task2(image_path, config):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # find all the .png images in the input directory
+    png_files = sorted(glob.glob(os.path.join(image_path, "*.png")))
+
+    if not png_files:
+        print(" [Task 2] No input images found.")
+        return
+
+    print(f"    [Task 2] Found {len(png_files)} input images(s).")
+
+    process_task2(png_files, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
+
+def process_task2(png_files, allowDebugLCD, allowDebugTHERMO):
+    """
+    Decides which process to use for lcd and thermometers.
+
+    Input:
+        - png_files -- input files to pass
+    
+    """
+    for file_path in png_files:
+        fname = os.path.basename(file_path)
+        base_name = os.path.splitext(fname)[0] # lcd2 or thermo1
+
+        img = cv2.imread(file_path)
+        if img is None or img.size == 0:
+            print(f"    [Task 2] Could not read {fname}. Skipping")
+            continue
+
+        if fname.startswith("lcd"):
+            segment_lcd(img, base_name, allowDebugLCD)
+        elif fname.startswith("thermo"):
+            segment_thermo(img, base_name, allowDebugTHERMO)
+        else:
+            print(f"    [Task 2] unknown file type: {fname}. Skipping")
