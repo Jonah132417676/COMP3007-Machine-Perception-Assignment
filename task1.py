@@ -37,13 +37,24 @@ import numpy as np
 import math
 
 from ml_utils import load_YOLO, crop_object_box, perspective_transform_image
+
+ALLOW_BPM_DEBUG = True
+ALLOW_THERMO_DEBUG = True
+
 THERMO_LABEL = "thermometer"
+
 BPM_LABEL = "blood pressure monitor"
 BPM_THERMOMETER_DEETECTOR_MODEL_PATH = os.path.join("data/task1/","bpm_thermomter_detector.pt")
 LCD_DISPLAY_DETECTOR_MODEL_PATH = os.path.join("data/task1/","lcd_display_detector.pt")
 
+TEMPLATE_LCD_PATH = os.path.join("data/task1/templates/", "template_lcd.png")
+TEMPLATE_THERMO_PATH = os.path.join("data/task1/templates/", "template_thermo.png")
+
 BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY = 0.25
 BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.25
+
+# keypoint matching how many matches required
+MIN_MATCH_COUNT = 10
 
 OUTPUT_DIR = os.path.join("output","task1")
 
@@ -83,19 +94,19 @@ def run_task1(image_path, config):
 
     print(f"    [Task 1] Found {len(images)} input images(s).")
 
-    process_task1(images)
+    process_task1(images, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
    
-def process_task1(images):
+def process_task1(images, allowBPMDebug, allowTHERMODebug):
     """
     
     Pipeline: Input -> [BPM THERMO Detector] -> 
     
-    -> BPM -> [LCD Display Detector] -> [Crop Display] -> [Use orientated image for keypoint detection of four corners] -> [SIFT corner detection] -> [Perspective Transform]
-    -> Thermo -> [Crop Thermometer] -> [Use orientated image SIFT for keypoint detection] -> [Perspective transform]
+    -> BPM -> [LCD Display Detector] -> [Crop Display] -> [Use orientated image for keypoint detection of four corners] -> [SIFT keypoint detection] -> [Perspective Transform] -> Output
+    -> Thermo -> [Crop Thermometer] -> [Use orientated image SIFT for keypoint detection] -> [Perspective transform] -> Output
     
     """
-    # load model ->
 
+    # load models
     bpm_model_detector = load_YOLO(BPM_THERMOMETER_DEETECTOR_MODEL_PATH)
     lcd_display_detector = load_YOLO(LCD_DISPLAY_DETECTOR_MODEL_PATH)
      # task 1 logic
@@ -132,44 +143,15 @@ def process_task1(images):
             tensorBox = results[0].boxes.xyxy[i]
             x1, y1, x2, y2 = map(int, tensorBox[:4])
 
-            # obtain width and height of bounding box
-            width = abs(x2 - x1)
-            height = abs(y2 - y1)
-
-
-
             # for each image if negative 
             print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
             if label_name == THERMO_LABEL:
-                # thermometer
-
-
-                # crop it to the bounding boxes
-                final_image = crop_object_box(tensorBox, img)
-                # orientate the image (rotate by theta optimal)
-
-                final_image = apply_perspective_transform(final_image, width, height)
-
-
+                final_image = process_thermometer_image(img, tensorBox, allowTHERMODebug)
                 out_name = f"thermo{img_num}.png"
                 print(f"    [Task 1] {basename}.jpg -> Thermometer -> {out_name}")
             elif label_name == BPM_LABEL:
                 # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
-
-                # OR use SIFT: 
-                #  SOLUTION: SHI TOMASI CORNER DETECTION
-                    # - then find the top, leftmost, rightmost and bottom corners (then orientate corners of lcd display)
-
-                # bpm (crop to bounding boxes)
-                final_image = crop_object_box(tensorBox, img)
-
-                # detect lcd screen using lcd screen detector
-                lcdDisplayBox = lcd_display_detector.predict(final_image, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0].boxes.xyxy[0]
-                # crop it (to lcd screen)
-                final_image = crop_object_box(lcdDisplayBox, final_image)
-                # orientate
-
-                
+                final_image = process_bpm_image(img, tensorBox, lcd_display_detector, allowBPMDebug)
 
                 out_name = f"lcd{img_num}.png"
 
@@ -181,13 +163,110 @@ def process_task1(images):
             output_path = os.path.join(OUTPUT_DIR, out_name)
             save_output(output_path, final_image, output_type='image')
 
+def process_thermometer_image(img, tensorBox, allowDebug):
+    # thermometer
+    # obtain width and height of bounding box
+    
+    templateTHERMOImage = cv2.imread(TEMPLATE_THERMO_PATH)
 
+    # crop it to the bounding boxes of thermometer
+    final_image = crop_object_box(tensorBox, img)
 
-def apply_perspective_transform(crop, width, height):
-    # convert to gray scale
-    img = crop.copy()
-    pts_src = np.float32([[50, 100], [400, 50], [450, 500], [20, 450]])
+    final_image = sift_keypoint_perspective_warp(templateTHERMOImage, final_image, allowDebug)
 
-    pts_dst = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
+    if allowDebug:
+        plt.imshow(final_image)
+        plt.show()
 
-    return perspective_transform_image(crop, pts_src, pts_dst, width, height)
+    return final_image
+
+def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
+
+    # read lcd template
+    templateLCDImage = cv2.imread(TEMPLATE_LCD_PATH)
+
+    # base template
+    heightLCD, widthLCD = templateLCDImage.shape[:2]
+
+    # bpm (crop to bounding boxes)
+    bpmImg = crop_object_box(tensorBox, img)
+
+    # detect lcd screen using lcd screen detector
+    lcdDisplayBox = lcd_display_detector.predict(bpmImg, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0].boxes.xyxy[0]
+    # crop it (to lcd screen)
+    lcdCropped = crop_object_box(lcdDisplayBox, bpmImg)
+
+    final_image = sift_keypoint_perspective_warp(templateLCDImage, lcdCropped, allowDebug)
+    if allowDebug:
+        plt.imshow(final_image)
+        plt.show()
+
+    return final_image
+
+def sift_keypoint_perspective_warp(image1, image2, allowDebug):
+    """
+    Maps the keypoints of image2 to the dimensions of image1.
+    
+    """
+
+    goodMatches, kp1, kp2 = obtain_good_matches(image1, image2)
+    
+    # if good enough matches
+    if len(goodMatches) > MIN_MATCH_COUNT:
+        # obtain matching keypoints locations of both images
+        src_pts = np.float32([ kp1[m.queryIdx].pt for m in goodMatches ]).reshape(-1,1,2)
+        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in goodMatches ]).reshape(-1,1,2)
+
+        # map from image 2 to image 1's frame work
+        M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
+        matchesMask = mask.ravel().tolist()
+
+        # apply perspective transform to find matching borders
+        height, width = image1.shape[:2]
+
+        if allowDebug:
+            draw_params = dict(matchColor = (0, 255, 0),
+                               singlePointColor=None,
+                               matchesMask=matchesMask, # draw only inliers
+                               flags=2)
+            debugImg = cv2.drawMatches(image1, kp1, image2, kp2, goodMatches, None, **draw_params)
+            plt.imshow(debugImg)
+            plt.show()
+      
+        # find top Left, 
+        final_image = cv2.warpPerspective(image2, M, (width, height))
+        return final_image
+    else:
+        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}, needed: {MIN_MATCH_COUNT}")
+        return None
+    
+def obtain_good_matches(image1, image2):
+    """
+    Find the best matches between two images. 
+    
+    
+    
+    """
+    # use sift to compare orientation and their corresponding points
+    # https://docs.opencv.org/4.13.0/d1/de0/tutorial_py_feature_homography.html
+    # initialise SIFT
+    sift = cv2.SIFT_create()
+    # find the keypoints descriptors of both image
+    kp1, des1 = sift.detectAndCompute(image1, None)
+    kp2, des2 = sift.detectAndCompute(image2, None)
+
+    index_params = dict(algorithm=1, trees= 5)
+    search_params = dict(checks = 50)
+
+    # find keypoints
+    flann = cv2.FlannBasedMatcher(indexParams=index_params, searchParams=search_params)
+    matches = flann.knnMatch(des1, des2, k = 2)
+
+    # store the good matches using Lowe's ratio test
+    good = []
+    for m, n in matches:
+        if m.distance < 0.7 * n.distance:
+            good.append(m)
+
+    return good, kp1, kp2
+
