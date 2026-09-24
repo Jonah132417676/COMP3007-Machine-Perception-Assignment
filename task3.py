@@ -50,7 +50,7 @@ def save_output(output_path, content, output_type='txt'):
 
 # pad size trial and error for the model
 # 450
-def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, padding_color = [103, 140, 160]):
+def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug):
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
@@ -77,17 +77,12 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, pad
     for i, dfile in enumerate(digit_files):   
         img = cv2.imread(dfile)
         # add padding as model has trained on smaller lcd digits, not full
-        padded_img = cv2.copyMakeBorder(
-            img, 
-            top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
-            borderType=cv2.BORDER_CONSTANT, 
-            value=padding_color
-        )
-        
+        processed_img = lcd_process_new_image(img)
+       
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # obtain the singular result
-        result = yolo.predict(padded_img, retina_masks = True)[0]
+        result = yolo.predict(processed_img, retina_masks = True)[0]
         class_names = result.names
 
         if result is None or len(result.boxes) == 0:
@@ -109,13 +104,33 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, pad
         if allowDebug:
             plt.imshow(result.plot())
             plt.show()
-            
+
         # Extract the number from 'd1', 'd2' etc., so it saves as '1.txt', '2.txt' for Task 4
         digit_num = dname.replace('d', '')
         save_output(os.path.join(out_dir, f"{dname}.txt"), str(digit), output_type="txt")
 
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 
+def lcd_process_new_image(image, pad_size = 450):    
+    # padding color 
+    top_edge = image[0, :, :]
+    bottom_edge = image[-1, :, :]
+    left_edge = image[:, 0, :]
+    right_edge = image[:, -1, :]
+    # sample border pixels
+    # r, c, BGR
+    border_pixels = np.concatenate([top_edge, bottom_edge, left_edge, right_edge], axis=0)
+    avg_color = border_pixels.mean(axis=0).astype(int).tolist()
+    
+    padded_img = cv2.copyMakeBorder(
+        image, 
+        top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
+        borderType=cv2.BORDER_CONSTANT, 
+        value=avg_color
+    )
+
+    return padded_img
+    
 def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
     """
     Calculates the temperature from the reading.
