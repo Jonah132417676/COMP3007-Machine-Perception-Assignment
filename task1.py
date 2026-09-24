@@ -33,8 +33,8 @@ import math
 
 from ml_utils import load_YOLO, crop_object_box, perspective_transform_image
 
-ALLOW_BPM_DEBUG = True
-ALLOW_THERMO_DEBUG = True
+ALLOW_BPM_DEBUG = False
+ALLOW_THERMO_DEBUG = False
 
 THERMO_LABEL = "thermometer"
 
@@ -120,10 +120,6 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug):
         # for each result    
         class_names = result.names
 
-        plt.imshow(result.plot())
-        plt.show()
-
-
         # NEGATIVE
         if result is None or len(result.boxes) == 0:
             # negative produce no output
@@ -141,10 +137,16 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug):
             # for each image if negative 
             print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
             if label_name == THERMO_LABEL:
+                if allowTHERMODebug:
+                    plt.imshow(result.plot())
+                    plt.show()
                 final_image = process_thermometer_image(img, tensorBox, allowTHERMODebug)
                 out_name = f"thermo{img_num}.png"
                 print(f"    [Task 1] {basename}.jpg -> Thermometer -> {out_name}")
             elif label_name == BPM_LABEL:
+                if allowBPMDebug:
+                    plt.imshow(result.plot())
+                    plt.show()
                 # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
                 final_image = process_bpm_image(img, tensorBox, lcd_display_detector, allowBPMDebug)
 

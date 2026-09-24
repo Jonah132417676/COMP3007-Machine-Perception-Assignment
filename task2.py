@@ -26,6 +26,7 @@ OUTPUT_DIR = os.path.join("output","task2")
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
 HUE_THRESHOLD_THERMOMETER = 70
+HOUGH_LINES_THRESHOLD_FLUID = 70
 THERMO_ZOOM_DIVIDER = 15
 DILATE_KERNEL_SIZE = 5
 
@@ -244,7 +245,7 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
     
     gray = cv2.cvtColor(morphed, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50, minLineLength=40, maxLineGap=5)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=HOUGH_LINES_THRESHOLD_FLUID, minLineLength=40, maxLineGap=5)
 
     # find the top of the resulting region is fluid end point by finding the key point
     if lines is not None:

@@ -32,7 +32,7 @@ LEFT_THERMO_TICK_THRESHOLD = 0.3
 RIGHT_THERMO_TICK_THRESHOLD = 0.7
 Y_TICKS_GROUPING_THRESHOLD = 6
 THERMO_READING_DIGIT_Y_TOLERANCE = 20
-THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.75
+THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.85
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -73,8 +73,8 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, pad
     if not digit_files:
         print(f"    [Task 3] {lcd_name}: no digit images found.")
 
-    # for each digit image input
-    for dfile in digit_files:   
+    # for each digit image input    
+    for i, dfile in enumerate(digit_files):   
         img = cv2.imread(dfile)
         # add padding as model has trained on smaller lcd digits, not full
         padded_img = cv2.copyMakeBorder(
@@ -90,10 +90,6 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, pad
         result = yolo.predict(padded_img, retina_masks = True)[0]
         class_names = result.names
 
-        if allowDebug:
-            plt.imshow(result.plot())
-            plt.show()
-
         if result is None or len(result.boxes) == 0:
             # negative produce no output
             final_image = None
@@ -103,16 +99,20 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, pad_size = 450, pad
         # set default digit
         digit = -1
         # identify digit got the boxes
-        for box in result.boxes:
-            class_id = int(box.cls[0].item())
-            # obtain label name
-            label_name = class_names[class_id]
-            # for each image if negative 
-            print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
+        best_box = result.boxes[0]
+        class_id = int(best_box.cls[0].item())
+        digit = class_names[class_id]
+        
+        print(f"    [Task 3] {dname}.png -> LABEL: {digit}, CONF: {best_box.conf[0].item():.2f}")
 
-            digit = label_name
 
-            save_output(os.path.join(out_dir, f"{dname}.txt"), str(digit), output_type="txt")
+        if allowDebug:
+            plt.imshow(result.plot())
+            plt.show()
+            
+        # Extract the number from 'd1', 'd2' etc., so it saves as '1.txt', '2.txt' for Task 4
+        digit_num = dname.replace('d', '')
+        save_output(os.path.join(out_dir, f"{dname}.txt"), str(digit), output_type="txt")
 
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 
@@ -264,11 +264,11 @@ def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float],
     imgCopy = image.copy()
     for group in grouped_numbers:
         # remove non 2 length groups
-        atleast1or2DigitRule = len(group) == 1 or len(group) == 2 # 0 or 20
-        if atleast1or2DigitRule:
+        digit2Rule = len(group) == 2 # there is 0 marking but it is safer to rely on two digits
+        if digit2Rule:
             print(f"    [Task 3] Thermo Reading: Group={group}")
         else:
-            print(f"    [Task 3] Group Removed as atleast1or2DigitRule={atleast1or2DigitRule}, ")
+            print(f"    [Task 3] Group Removed as digit2Rule={digit2Rule}, ")
             continue
 
         # sort the digits from increasing x positions order
@@ -365,6 +365,9 @@ def calculate_average_y_dist_per_tick(lines, image, allowDebug):
 
 def group_similar_y(yPositionsSorted, groupingThreshold):
 
+    if not yPositionsSorted:
+        return []
+    
     result = []
     currentGroup = [yPositionsSorted[0]]
     for i in range(1, len(yPositionsSorted)):
@@ -379,7 +382,7 @@ def group_similar_y(yPositionsSorted, groupingThreshold):
             result.append(average)
 
             # clear current group
-            currentGroup = []
+            currentGroup = [y1]
 
     # add result final if it not empty
     if len(currentGroup) > 0:
