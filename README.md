@@ -1,8 +1,7 @@
 # Synopsis
+Contains the project files for object detection, segmentation and recognition for bpm and thermometer inputs.
 
-
-
-
+Full Pipeline: Input -> [Object Detection] -> [Geometric Transform] -> [Segmentation] -> [Recognition] -> Output
 # Contents
 assignment.py - A wrapper script that runs on cmd line inputs to run each task.
 

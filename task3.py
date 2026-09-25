@@ -77,11 +77,11 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug):
         img = cv2.imread(dfile)
         # add padding as model has trained on smaller lcd digits, not full
         processed_img = lcd_process_new_image(img)
-       
+        
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # obtain the singular result
-        result = yolo.predict(processed_img, retina_masks = True)[0]
+        result = yolo.predict(processed_img, retina_masks = False)[0]
         class_names = result.names
 
         if result is None or len(result.boxes) == 0:
@@ -110,7 +110,9 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug):
 
     print(f"    [Task 3] {lcd_name}: recognised {len(digit_files)} digit(s) -> {out_dir}")
 
-def lcd_process_new_image(image, pad_size = 450):    
+def lcd_process_new_image(image, margin=300):  
+    h, w = image.shape[:2]
+
     # padding color 
     top_edge = image[0, :, :]
     bottom_edge = image[-1, :, :]
@@ -121,9 +123,17 @@ def lcd_process_new_image(image, pad_size = 450):
     border_pixels = np.concatenate([top_edge, bottom_edge, left_edge, right_edge], axis=0)
     avg_color = border_pixels.mean(axis=0).astype(int).tolist()
     
+    max_dim = max(h, w) + (margin * 2)
+
+    # calculate padding needed to center the digit
+    pad_top = (max_dim - h) // 2
+    pad_bottom = max_dim - h - pad_top
+    pad_left = (max_dim - w) // 2
+    pad_right = max_dim - w - pad_left
+
     padded_img = cv2.copyMakeBorder(
         image, 
-        top=pad_size, bottom=pad_size, left=pad_size, right=pad_size, 
+        top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, 
         borderType=cv2.BORDER_CONSTANT, 
         value=avg_color
     )
