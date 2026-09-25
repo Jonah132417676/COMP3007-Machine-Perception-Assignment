@@ -4,7 +4,6 @@ task2.py
 
 Given a cropped image, you must segment into individual digits (BPM) or segment area on thermometer with fluid mark.
 
-
 Author: Zhong Cheng Lau 
 
 Last Modified: 2026-20-09

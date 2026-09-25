@@ -13,7 +13,6 @@ Last Modified: 2026-24-09
 import os
 import cv2
 import glob
-import random
 
 from task1 import run_task1
 from task2 import run_task2

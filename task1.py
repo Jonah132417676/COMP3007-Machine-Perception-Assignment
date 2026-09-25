@@ -29,9 +29,8 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 
-from ml_utils import load_YOLO, crop_object_box, perspective_transform_image
+from ml_utils import load_YOLO, crop_object_box
 
 ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = False
@@ -49,7 +48,7 @@ BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY = 0.25
 BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.25
 
 # keypoint matching how many matches required
-MIN_MATCH_COUNT = 10
+MIN_MATCH_COUNT = 7
 
 OUTPUT_DIR = os.path.join("output","task1")
 
