@@ -124,7 +124,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
     """
 
 
-    print("GPU Available: ", torch.cuda.is_available())
+    print("GPU Available: ", torch.backends.mps.is_available())
 
 
     # initialise weights and biases run
@@ -151,7 +151,7 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
         name=output_model_name,        
         save=True,
         exist_ok = True,
-        device="cuda"
+        device="mps"
     )
 
     # validation for the model
