@@ -16,18 +16,24 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ml_utils import load_YOLO, hsv_threshold
+from ml_utils import load_YOLO, hsv_threshold, clear_file_dir
 
-ALLOW_BPM_DEBUG = True
+ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task2")
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
-HUE_THRESHOLD_THERMOMETER = 70
-HOUGH_LINES_THRESHOLD_FLUID = 70
+MIN_FLUID_X_THRESHOLD = 208 / 480
+MAX_FLUID_X_THRESHOLD = 295/480
+MIN_FLUID_Y_THRESHOLD = 400/2700
+MAX_FLUID_Y_THRESHOLD = 2240/2700
+
+
+HUE_THRESHOLD_THERMOMETER = 80
+HOUGH_LINES_THRESHOLD_FLUID = 15
 THERMO_ZOOM_DIVIDER = 15
-DILATE_KERNEL_SIZE = 5
+DILATE_KERNEL_SIZE = 20
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -100,6 +106,7 @@ def segment_lcd(image, lcd_name, allowDebug):
 
         save_output(os.path.join(sub_dir, f"d{i+1}.png"), digit_img, output_type='image')
         print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
+
     
 def segment_thermo(image, thermo_name, allowDebug):
     """
@@ -117,7 +124,31 @@ def segment_thermo(image, thermo_name, allowDebug):
 
     h, w = image.shape[:2]
 
-    x, y_maximum_point = get_highest_fluid_endpoint(image,  DILATE_KERNEL_SIZE, allowDebug)
+    # remove and keep just the fluid parts
+    # remove sides (numbers may detect lines so remove quuarter from either side)
+    mask = image.copy()
+
+    left_bound = int(w * MIN_FLUID_X_THRESHOLD)
+    right_bound = int(w * MAX_FLUID_X_THRESHOLD)
+    top_bound = int(h*MIN_FLUID_Y_THRESHOLD)
+    bottom_bound = int(h*MAX_FLUID_Y_THRESHOLD)
+
+    mask[:, 0:left_bound] = 0
+    mask[:, right_bound:w] = 0  
+    mask[0:top_bound, :] = 0
+    mask[bottom_bound:h, :] = 0  
+
+    plt.imshow(mask)
+    plt.show()
+
+    outVal = get_highest_fluid_endpoint(mask,  DILATE_KERNEL_SIZE, allowDebug)
+
+    if outVal: # unpack if it exists
+        x, y_maximum_point = outVal
+    else:
+        return
+    
+
     
     zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
     crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
@@ -211,6 +242,24 @@ def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tol
 
     return valid_lines
 
+def extract_main_fluid_column(binary_mask):
+    """
+    Isolates the pink fluid and removes noise.
+    
+    """
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask)
+    # the main fluid body will most like havethe greatest area
+
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    if areas is not None or len(areas) == 0:
+        return binary_mask
+
+    main_label = np.argmax(areas) + 1
+    # return clean mask where it only includes the main label
+    clean_mask = np.zeros_like(binary_mask)
+    clean_mask[labels == main_label] = 255
+    return clean_mask
+
 def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool):
     """
     Obtains the highest fluid point on the thermometer image.
@@ -227,9 +276,13 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
     """
     h, w = image.shape[:2]
 
-    result = hsv_threshold(image, (5, 75, 55), (170, 255, 255)) 
+    result = threshold_fluid(image)
     if allowDebug:
         plt.imshow(result)
+        plt.show()
+
+    if allowDebug:
+        plt.imshow(image)
         plt.show()
     
     # clean up noise using morphology closed to remove holes 
@@ -241,9 +294,28 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
         plt.imshow(morphed)
         plt.show()
 
-    
     gray = cv2.cvtColor(morphed, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+
+    # convert to single channel binary mask
+    _, binary_mask = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    clean_fluid_mask = extract_main_fluid_column(binary_mask)
+    if allowDebug:
+        plt.imshow(clean_fluid_mask)
+        plt.show()
+
+    
+    nonzero_y, nonzero_x = np.where(clean_fluid_mask > 0)
+    """if len(nonzero_y) > 0:
+            
+        top_idx = np.argmin(nonzero_y)
+        x_top, y_top = nonzero_x[top_idx], nonzero_y[top_idx]
+
+        return x_top, y_top
+    else:
+        print(f"    [Task 2] CANNOT DETECT BLOB RED LINE, cannot find fluid endpoint.")
+        return None
+"""
+    edges = cv2.Canny(clean_fluid_mask, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=HOUGH_LINES_THRESHOLD_FLUID, minLineLength=40, maxLineGap=5)
 
     # find the top of the resulting region is fluid end point by finding the key point
@@ -276,10 +348,31 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
         return x_point, y_maximum_point
     else:
         print(f"    [Task 2] CANNOT DETECT HOUGH LINES, cannot find fluid endpoint.")
-        return 0
+        return None
+
+def threshold_fluid(image):
+    """
+    Thresholds fluid colors.
     
+    Inputs:
+        - image -- thermometer image
+    """
+    # red colour wraps around hue range so two masks are required
+    lower = np.array([0, 50, 40])
+    higher = np.array([15, 255, 255])
+    res1 = hsv_threshold(image, lower, higher) 
+
+    lower = np.array([165, 50, 40])
+    higher = np.array([180, 255, 255])
+    res2 = hsv_threshold(image, lower, higher) 
+
+    # combine all hsv thresholded detections together
+    result = cv2.bitwise_or(res1, res2)
+    return result
 def run_task2(image_path, config):
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    clear_file_dir(OUTPUT_DIR)
 
     # find all the .png images in the input directory
     png_files = sorted(glob.glob(os.path.join(image_path, "*.png")))

@@ -16,10 +16,10 @@ import glob
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ml_utils import load_YOLO, hsv_threshold
+from ml_utils import load_YOLO, clear_file_dir
 from task2 import get_highest_fluid_endpoint
 
-ALLOW_BPM_DEBUG = True
+ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = True
 
 OUTPUT_DIR = os.path.join("output","task3")
@@ -32,6 +32,7 @@ RIGHT_THERMO_TICK_THRESHOLD = 0.7
 Y_TICKS_GROUPING_THRESHOLD = 6
 THERMO_READING_DIGIT_Y_TOLERANCE = 20
 THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.85
+HOUGHLINES_THRESHOLD = 20
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -164,7 +165,11 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
     h, w = image.shape[:2]
     # find fluid end point position (y).
     # convert to hsv (hue, sat, val) space img 
-    x_end_point, y_maximum_point = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, allowDebug)
+    outVal = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, allowDebug)
+    if outVal is not None: # unpack if it exists
+        x_end_point, y_maximum_point = outVal
+    else:
+        return
     
     if allowDebug:
         imgCopy = image.copy()
@@ -191,12 +196,13 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
         plt.imshow(mask)
         plt.show()
 
+    edges = cv2.Canny(mask, 50, 150, apertureSize=3)
 
     lines = cv2.HoughLinesP(
-        image=mask, 
+        image=edges, 
         rho=1, 
         theta=np.pi / 360, 
-        threshold=70, # lower threshold as zoomed in more
+        threshold=HOUGHLINES_THRESHOLD, # lower threshold as zoomed in more
         )
         
    
@@ -419,7 +425,9 @@ def group_similar_y(yPositionsSorted, groupingThreshold):
 def run_task3(image_path, config):
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+    # clear file directory
+    clear_file_dir(OUTPUT_DIR)
+    
     # find all the .sub directories in the input directory
     if not os.path.isdir(image_path):
         print(f"    [Task 3] Input path does not exist: {image_path}")

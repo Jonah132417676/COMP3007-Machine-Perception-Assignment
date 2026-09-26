@@ -30,7 +30,7 @@ import glob
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ml_utils import load_YOLO, crop_object_box
+from ml_utils import load_YOLO, crop_object_box, clear_file_dir
 
 ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = False
@@ -45,7 +45,7 @@ TEMPLATE_LCD_PATH = os.path.join("data/task1/templates/", "template_lcd.png")
 TEMPLATE_THERMO_PATH = os.path.join("data/task1/templates/", "template_thermo.png")
 
 BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY = 0.25
-BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.25
+BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.5
 
 # keypoint matching how many matches required
 MIN_MATCH_COUNT = 7
@@ -78,6 +78,9 @@ def run_task1(image_path, config):
     """
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # clear file directory
+    clear_file_dir(OUTPUT_DIR)
 
     # find all the .jpg images in the input directory
     images = sorted(glob.glob(os.path.join(image_path, "img*.jpg")))
@@ -125,16 +128,18 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug):
             final_image = None
             print(f"    [Task 1] {basename}.jpg -> NEGATIVE (no output)")
             continue
+        else:            
+            # get highest box
+    
+            resultBox = result.boxes[0]
 
-        for i, box in enumerate(result.boxes):
-            class_id = int(box.cls[0].item())
+            class_id = int(resultBox.cls[0].item())
             # obtain label name
             label_name = class_names[class_id]
-            tensorBox = results[0].boxes.xyxy[i]
-            x1, y1, x2, y2 = map(int, tensorBox[:4])
+            tensorBox = resultBox.xyxy[0]
 
             # for each image if negative 
-            print(f"LABEL: {label_name}, CONF: {box.conf[0].item()}")
+            print(f"LABEL: {label_name}, CONF: {resultBox.conf[0].item()}")
             if label_name == THERMO_LABEL:
                 if allowTHERMODebug:
                     plt.imshow(result.plot())
@@ -206,7 +211,14 @@ def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
     bpmImg = crop_object_box(tensorBox, img)
 
     # detect lcd screen using lcd screen detector
-    lcdDisplayBox = lcd_display_detector.predict(bpmImg, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0].boxes.xyxy[0]
+    lcdResult = lcd_display_detector.predict(bpmImg, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0]
+
+    if lcdResult.boxes is None or len(lcdResult.boxes) == 0:
+        print("    [Task 1] No LCD screen detected inside BPM bounding box.")
+        return None  # Or return bpm_crop as fallback
+
+    lcdDisplayBox = lcdResult.boxes.xyxy[0]
+    
     # crop it (to lcd screen)
     lcdCropped = crop_object_box(lcdDisplayBox, bpmImg)
 

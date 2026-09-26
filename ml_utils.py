@@ -4,15 +4,14 @@ ml_utils.py
 
 A machine learning utils script that stores useful helper functions.
 
-Functions:
-    - 
-
-
 Author: Zhong Cheng Lau
 
-Student ID: 22212117
+Last Modified: 2026-26-09
+
+
 """
 import os
+import shutil
 import cv2
 import numpy as np
 import wandb
@@ -23,25 +22,34 @@ from ultralytics import YOLO
 from pathlib import Path
 
 def crop_object_box(box, img):
+    """
+    Crops the image by the bounding boxes.
+
+    Inputs:
+        - box -- bounding box data
+        - img -- image to crop
+    
+    Output:
+        - cropped_image 
+    
+    """
 
     x1, y1, x2, y2 = map(int, box[:4])
     return img[y1:y2, x1:x2]
 
-def rotate_image(img, theta):
-    # image dimensions
-    rows, cols, channels = img.shape
-
-    # Centre of rotation
-    cor = ((cols - 1)// 2, (rows - 1)//2)
-
-    # rotation matrix
-    rotMatrix = cv2.getRotationMatrix2D(cor, theta, 1)
-
-    # perform rotation
-    dst = cv2.warpAffine(img, rotMatrix, (cols, rows))
-    return dst
-
 def perspective_transform_image(img, pts_src, pts_dst, width, height):
+    """
+    Perform perspective transform on the image.
+
+    Inputs:
+        - img -- the image to apply perspective transform to
+        - pts_src -- source points for the image
+        - pts_dst -- subsequent destination points for the perspective transform
+        - width -- width of the image
+        - height -- height of the image 
+
+    
+    """
     matrix = cv2.getPerspectiveTransform(pts_src, pts_dst)
     warpedImg = cv2.warpPerspective(img, matrix, (width, height))
     return warpedImg
@@ -121,6 +129,14 @@ def load_YOLO(path: str):
 def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, configs: dict):
     """
     Trains a model using YOLO (deep learning for object detection)
+    NOTE: REQUIRES GPU
+
+    Inputs:
+        - output_model_name -- name of the model output 
+        - output_path -- output path of the model
+        - trainingDataPath -- path of the training data contaiing data.yaml
+        - configs -- dictionary including training parameters
+    
     """
 
 
@@ -165,7 +181,39 @@ def train_YOLO(output_model_name: str, output_path: str, trainingDataPath: str, 
 
 
 def hsv_threshold(image, lower = (5, 75, 55), upper = (170, 255, 255)):
+    """
+    Applies a hsv threshold to the image between lowwe NS UPPWE.
+
+    Inputs:
+        - image -- the image to apply effect to
+        - lower -- lower bound for hue 
+        - upper -- higher bound for hue
+    
+    Outputs:
+        - cleaned_image -- the cleaned image for thresholding.
+    """
+    
     # convert to hsv (hue, sat, val) space img 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower, upper)
     return cv2.bitwise_and(image, image, mask=mask)
+
+def clear_file_dir(folder_path):
+    """
+    Clears the file directory and its contents. https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder
+
+    Inputs:
+        - folder_path -- the path to the directory to clear
+    """
+
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                # if file unlink
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                # rm tree if directory
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f'Failed to delete {folder_path}. Reason: {e}')

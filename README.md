@@ -29,6 +29,7 @@ glob
 cv2
 ultralytics
 sys
+shutil
 
 # Version History
 24/09/26 - Initial submission

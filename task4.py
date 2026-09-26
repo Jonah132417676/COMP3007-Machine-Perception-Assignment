@@ -18,6 +18,7 @@ from task1 import run_task1
 from task2 import run_task2
 from task3 import run_task3
 
+from ml_utils import clear_file_dir
 OUTPUT_DIR_TASK4 = os.path.join("output","task4")
 OUTPUT_DIR_TASK1= os.path.join("output", "task1")
 OUTPUT_DIR_TASK2= os.path.join("output", "task2")
@@ -88,6 +89,8 @@ def get_thermo_reading(img_num):
         return f"Did not find the thermo file: {file_path}"
 
 def process_task4(image_path, images, config):
+    # clear file directory
+    clear_file_dir(OUTPUT_DIR_TASK4)
 
     # task 1 -> object detection and orientation
     run_task1(image_path, config)
