@@ -7,7 +7,7 @@ Trains task3_digit_bpm_classifier and task3_thermometer_readings_classifier usin
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-16-09
+Last Modified: 2026-26-09
 
 """
 import os
@@ -15,13 +15,16 @@ import sys
 
 from ultralytics import YOLO
 
-from ml_utils import train_YOLO, read_config_txt
+from ml_utils import train_YOLO, read_config_txt, validate_model_matrix, load_YOLO
 
 LCD_TRAIN_DATA_PATH = os.path.join("training_data/task3/Task 3 Dataset LCD Digits/","data.yaml")
 LCD_DIGIT_MODEL_NAME = "digit_LCD_classifier_model"
 
 THERMO_READING_TRAIN_DATA_PATH = os.path.join("training_data/task3/Task 3 Dataset Number Reading/","data.yaml")
 THERMO_READING_MODEL_NAME = "number_reading_model"
+
+LCD_MODEL_LOCATION = os.path.join("data/task3/", "lcd_digit_detector.pt")
+
 def train_model_BPM_reading(configs: dict) -> YOLO:
     """
     Train the BPM reading model digits.
@@ -62,6 +65,7 @@ def printout_message():
 
         1 - train lcd digit detector
         2 - train thermo reading detector
+        3 - validate lcd digit model confusion matrix
 """)
 
 if __name__ == "__main__":
@@ -73,6 +77,9 @@ if __name__ == "__main__":
             train_model_BPM_reading(configs)
         elif sys.argv[1] == '2':
             train_model_thermometer_reading(configs)
+        elif sys.argv[1] == '3':
+            model = load_YOLO(LCD_MODEL_LOCATION)
+            validate_model_matrix(model, LCD_TRAIN_DATA_PATH, "LCD Digit Confusion Matrix")
         else:
             print("wrong system arguments")
             printout_message()

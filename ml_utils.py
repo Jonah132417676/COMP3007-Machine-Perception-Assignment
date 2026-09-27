@@ -16,6 +16,8 @@ import cv2
 import numpy as np
 import wandb
 import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from wandb.integration.ultralytics import add_wandb_callback
 from ultralytics import YOLO
@@ -217,3 +219,36 @@ def clear_file_dir(folder_path):
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f'Failed to delete {folder_path}. Reason: {e}')
+
+def validate_model_matrix(model, dataset_path, title):    
+    """
+    Validation set on model.
+
+    Inputs:
+        - model -- the model to validate
+        - dataset_path -- path of the dataset to validate with
+    
+    """
+    metrics = model.val(data=dataset_path)
+    confusion_matrix = metrics.confusion_matrix.matrix
+
+    class_names = list(model.names.values())
+
+    # plt confusion matrix 
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(
+        data=confusion_matrix,
+        annot=True,
+        fmt=".0f",
+        cmap="Blues",
+        xticklabels=class_names,
+        yticklabels=class_names,
+        cbar=True
+    )
+
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+

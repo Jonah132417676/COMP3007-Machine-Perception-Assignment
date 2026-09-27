@@ -148,8 +148,6 @@ def segment_thermo(image, thermo_name, allowDebug):
     else:
         return
     
-
-    
     zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
     crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
     if allowDebug:
@@ -170,7 +168,6 @@ def plot_lcd_digits(result, sysBoxes, diaBoxes, pulseBoxes):
         - sysBoxes -- ordered boxes of SYS on bpm
         - diaBoxes -- ordered boxes of DIA on bpm
         - pulseBoxes -- ordered boxes of PULSE on bpm
-
     
     """
     plt.imshow(result.plot())
@@ -302,19 +299,7 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
     if allowDebug:
         plt.imshow(clean_fluid_mask)
         plt.show()
-
     
-    nonzero_y, nonzero_x = np.where(clean_fluid_mask > 0)
-    """if len(nonzero_y) > 0:
-            
-        top_idx = np.argmin(nonzero_y)
-        x_top, y_top = nonzero_x[top_idx], nonzero_y[top_idx]
-
-        return x_top, y_top
-    else:
-        print(f"    [Task 2] CANNOT DETECT BLOB RED LINE, cannot find fluid endpoint.")
-        return None
-"""
     edges = cv2.Canny(clean_fluid_mask, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=HOUGH_LINES_THRESHOLD_FLUID, minLineLength=40, maxLineGap=5)
 

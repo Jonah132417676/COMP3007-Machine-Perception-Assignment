@@ -1,6 +1,7 @@
-train: ../train/images
-val: ../valid/images
-test: ../test/images
+path: /Users/jonahzclau/University/_COMP3007 - Machine Perception/COMP3007 Machine Perception Assignment/training_data/task3/Task 3 Dataset LCD Digits
+train: train/images
+val: valid/images
+test: test/images
 
 nc: 10
 names: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
