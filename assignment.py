@@ -6,7 +6,7 @@ A wrapper script that handles running tests on task1, task2, task3 and task4 mod
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-09-09
+Last Modified: 2026-27-09
 
 """
 import sys
@@ -18,6 +18,11 @@ from task1 import run_task1
 from task2 import run_task2
 from task3 import run_task3
 from task4 import run_task4
+
+OUTPUT_DIR_TASK1 = os.path.join("output","task1")
+OUTPUT_DIR_TASK2 = os.path.join("output","task2")
+OUTPUT_DIR_TASK3 = os.path.join("output","task3")
+OUTPUT_DIR_TASK4 = os.path.join("output","task4")
 
 
 def print_usage():
@@ -55,13 +60,13 @@ if __name__ == "__main__":
     try:   
         match task:
             case "task1":
-                run_task1(image_path, config) 
+                run_task1(image_path, config, OUTPUT_DIR_TASK1) 
             case "task2":
-                run_task2(image_path, config)
+                run_task2(image_path, config, OUTPUT_DIR_TASK2)
             case "task3":
-                run_task3(image_path, config)
+                run_task3(image_path, config, OUTPUT_DIR_TASK3)
             case "task4":
-                run_task4(image_path, config)
+                run_task4(image_path, config, OUTPUT_DIR_TASK4)
             case _: # default case
                 print(f"Unknown task: {task}. Specify task1, task2, task3 or task4")
                 print_usage()

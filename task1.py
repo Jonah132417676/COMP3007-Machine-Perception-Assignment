@@ -20,7 +20,7 @@ Object Detection: YOLO
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-25-09
+Last Modified: 2026-27-09
 
 """
 
@@ -50,8 +50,6 @@ BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.5
 # keypoint matching how many matches required
 MIN_MATCH_COUNT = 7
 
-OUTPUT_DIR = os.path.join("output","task1")
-
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -67,7 +65,7 @@ def save_output(output_path, content, output_type='txt'):
         print("Unsupported output type. Use 'txt' or 'image'.")
 
 
-def run_task1(image_path, config):
+def run_task1(image_path, config, output_path):
     """
     Entry point for task1 called by assignment.py
 
@@ -77,10 +75,10 @@ def run_task1(image_path, config):
     
     """
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
 
     # clear file directory
-    clear_file_dir(OUTPUT_DIR)
+    clear_file_dir(output_path)
 
     # find all the .jpg images in the input directory
     images = sorted(glob.glob(os.path.join(image_path, "img*.jpg")))
@@ -91,9 +89,9 @@ def run_task1(image_path, config):
 
     print(f"    [Task 1] Found {len(images)} input images(s).")
 
-    process_task1(images, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
+    process_task1(images, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
    
-def process_task1(images, allowBPMDebug, allowTHERMODebug):
+def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path):
     """
     
     Pipeline: Input -> [BPM THERMO Detector] -> 
@@ -161,8 +159,8 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug):
                 print(f"    [Task 1] Object Detection not available for object label: {label_name}")
                 out_name = ""
             
-            output_path = os.path.join(OUTPUT_DIR, out_name)
-            save_output(output_path, final_image, output_type='image')
+            final_output_path = os.path.join(output_path, out_name)
+            save_output(final_output_path, final_image, output_type='image')
 
 def process_thermometer_image(img, tensorBox, allowDebug):
     """

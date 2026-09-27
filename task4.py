@@ -6,7 +6,7 @@ Runs the entire pipeline from start to finish.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-25-09
+Last Modified: 2026-27-09
 
 """
 
@@ -19,10 +19,7 @@ from task2 import run_task2
 from task3 import run_task3
 
 from ml_utils import clear_file_dir
-OUTPUT_DIR_TASK4 = os.path.join("output","task4")
-OUTPUT_DIR_TASK1= os.path.join("output", "task1")
-OUTPUT_DIR_TASK2= os.path.join("output", "task2")
-OUTPUT_DIR_TASK3= os.path.join("output", "task3")
+
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -39,8 +36,8 @@ def save_output(output_path, content, output_type='txt'):
         print("Unsupported output type. Use 'txt' or 'image'.")
 
 
-def get_bpm_reading(img_num):
-    lcd_dir = os.path.join(OUTPUT_DIR_TASK3, f"lcd{img_num}")
+def get_bpm_reading(img_num, output_path_dict):
+    lcd_dir = os.path.join(output_path_dict["task3"], f"lcd{img_num}")
 
     # structure:
     # 3 is sys (1, 2, 3)
@@ -72,10 +69,10 @@ def get_bpm_reading(img_num):
    
     return f"{sys_val},{dia_val},{pulse_val}"
 
-def get_thermo_reading(img_num):
+def get_thermo_reading(img_num, output_path_dict):
 
     # read from output of task3 
-    thermo_dir = os.path.join(OUTPUT_DIR_TASK3, f"thermo{img_num}")
+    thermo_dir = os.path.join(output_path_dict["task3"], f"thermo{img_num}")
 
     # read the t.txt file
     file_path = os.path.join(thermo_dir, 't.txt')
@@ -88,37 +85,48 @@ def get_thermo_reading(img_num):
         print(f"     [Task 4] Did not find the thermo file: {file_path}")
         return f"Did not find the thermo file: {file_path}"
 
-def process_task4(image_path, images, config):
+def process_task4(image_path, images, config, output_path):
     # clear file directory
-    clear_file_dir(OUTPUT_DIR_TASK4)
+    clear_file_dir(output_path)
+    output_path_dict = {
+        "task1": os.path.join(output_path, "task1"),
+        "task2": os.path.join(output_path, "task2"),
+        "task3": os.path.join(output_path, "task3"),
+        "task4": os.path.join(output_path, "task4")
+    }
+
+    os.makedirs(output_path_dict["task4"], exist_ok=True)
+    os.makedirs(output_path_dict["task1"], exist_ok=True)
+    os.makedirs(output_path_dict["task2"], exist_ok=True)
+    os.makedirs(output_path_dict["task3"], exist_ok=True)
 
     # task 1 -> object detection and orientation
-    run_task1(image_path, config)
+    run_task1(image_path, config, output_path_dict["task1"])
 
     # task 2 -> segmentation from output of task1
-    run_task2(OUTPUT_DIR_TASK1, config)
+    run_task2(output_path_dict["task1"], config, output_path_dict["task2"])
 
     # task 3 
-    run_task3(OUTPUT_DIR_TASK2, config)
+    run_task3(output_path_dict["task2"], config, output_path_dict["task3"])
 
     for i, img_file in enumerate(images):
         basename = os.path.splitext(os.path.basename(img_file))[0] # img1
         img_num = basename.replace("img", "") # 1
 
         # Check if task 3 created output directories for this specific image
-        thermo_dir = os.path.join(OUTPUT_DIR_TASK3, f"thermo{img_num}")
-        lcd_dir = os.path.join(OUTPUT_DIR_TASK3, f"lcd{img_num}")
+        thermo_dir = os.path.join(output_path_dict["task3"], f"thermo{img_num}")
+        lcd_dir = os.path.join(output_path_dict["task3"], f"lcd{img_num}")
 
         # thermometer reading exists
         if os.path.exists(thermo_dir) and os.path.isfile(os.path.join(thermo_dir, 't.txt')):
             # themoemeter
-            reading = get_thermo_reading(img_num)
+            reading = get_thermo_reading(img_num, output_path_dict)
             line = f"thermo {reading}"
             print(f"    [Task 4] {basename}.jpg -> {line}")
 
         elif os.path.exists(lcd_dir):
             # BPM
-            reading = get_bpm_reading(img_num)
+            reading = get_bpm_reading(img_num, output_path_dict)
             line = f"bpm {reading}"
             print(f"    [Task 4] {basename}.jpg -> {line}")
         else:
@@ -126,9 +134,9 @@ def process_task4(image_path, images, config):
             print(f"    [Task 4] {basename}.jpg -> NEGATIVE (no output)")
             continue
 
-        save_output(os.path.join(OUTPUT_DIR_TASK4, f"{basename}.txt"), line, output_type = "txt")
+        save_output(os.path.join(output_path_dict["task4"], f"{basename}.txt"), line, output_type = "txt")
 
-def run_task4(image_path, config):
+def run_task4(image_path, config, output_path):
 
     # find all the jpg images in input directory
     images = sorted(glob.glob(os.path.join(image_path, "img*.jpg")))
@@ -139,4 +147,4 @@ def run_task4(image_path, config):
 
     print(f"    [Task 4] Found {len(images)} input image(s).")
     
-    process_task4(image_path, images, config)
+    process_task4(image_path, images, config, output_path)

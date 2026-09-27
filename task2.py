@@ -6,7 +6,7 @@ Given a cropped image, you must segment into individual digits (BPM) or segment 
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-25-09
+Last Modified: 2026-27-09
 
 """
 
@@ -21,7 +21,6 @@ from ml_utils import load_YOLO, hsv_threshold, clear_file_dir
 ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = True
 
-OUTPUT_DIR = os.path.join("output","task2")
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
 MIN_FLUID_X_THRESHOLD = 208 / 480
@@ -51,7 +50,7 @@ def save_output(output_path, content, output_type='txt'):
 
 
 
-def segment_lcd(image, lcd_name, allowDebug):
+def segment_lcd(image, lcd_name, allowDebug, output_path):
     """
     Segments the image into individual digits.
 
@@ -62,7 +61,7 @@ def segment_lcd(image, lcd_name, allowDebug):
         - lcd_name -- name of lcd image
 
     """
-    sub_dir = os.path.join(OUTPUT_DIR, lcd_name)
+    sub_dir = os.path.join(output_path, lcd_name)
 
     h, w = image.shape[:2]
 
@@ -108,7 +107,7 @@ def segment_lcd(image, lcd_name, allowDebug):
         print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
 
     
-def segment_thermo(image, thermo_name, allowDebug):
+def segment_thermo(image, thermo_name, allowDebug, output_path):
     """
     Segments the thermo for fluid and markings.
 
@@ -120,7 +119,7 @@ def segment_thermo(image, thermo_name, allowDebug):
         - image -- input thermometer image cropped
         - thermo_name -- the name of the thermometer  png
     """
-    sub_dir = os.path.join(OUTPUT_DIR, thermo_name)
+    sub_dir = os.path.join(output_path, thermo_name)
 
     h, w = image.shape[:2]
 
@@ -354,10 +353,10 @@ def threshold_fluid(image):
     # combine all hsv thresholded detections together
     result = cv2.bitwise_or(res1, res2)
     return result
-def run_task2(image_path, config):
+def run_task2(image_path, config, output_path):
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    clear_file_dir(OUTPUT_DIR)
+    os.makedirs(output_path, exist_ok=True)
+    clear_file_dir(output_path)
 
     # find all the .png images in the input directory
     png_files = sorted(glob.glob(os.path.join(image_path, "*.png")))
@@ -368,9 +367,9 @@ def run_task2(image_path, config):
 
     print(f"    [Task 2] Found {len(png_files)} input images(s).")
 
-    process_task2(png_files, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
+    process_task2(png_files, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
 
-def process_task2(png_files, allowDebugLCD, allowDebugTHERMO):
+def process_task2(png_files, allowDebugLCD, allowDebugTHERMO,output_path):
     """
     Decides which process to use for lcd and thermometers.
 
@@ -388,8 +387,8 @@ def process_task2(png_files, allowDebugLCD, allowDebugTHERMO):
             continue
 
         if fname.startswith("lcd"):
-            segment_lcd(img, base_name, allowDebugLCD)
+            segment_lcd(img, base_name, allowDebugLCD, output_path)
         elif fname.startswith("thermo"):
-            segment_thermo(img, base_name, allowDebugTHERMO)
+            segment_thermo(img, base_name, allowDebugTHERMO, output_path)
         else:
             print(f"    [Task 2] unknown file type: {fname}. Skipping")

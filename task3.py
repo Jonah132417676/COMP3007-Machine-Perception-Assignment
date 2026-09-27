@@ -6,7 +6,7 @@ Produce predictions on the digit readings or the thermometer readings.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-25-09
+Last Modified: 2026-27-09
 
 """
 
@@ -22,7 +22,6 @@ from task2 import get_highest_fluid_endpoint
 ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = True
 
-OUTPUT_DIR = os.path.join("output","task3")
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
 
@@ -50,7 +49,7 @@ def save_output(output_path, content, output_type='txt'):
 
 # pad size trial and error for the model
 # 450
-def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug):
+def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path):
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
@@ -65,7 +64,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug):
         - pad_size -- padding applied for the model to detect digits better
         - padding_color -- affects model learning and makes the background a more homogenous color
     """
-    out_dir = os.path.join(OUTPUT_DIR, lcd_name)
+    out_dir = os.path.join(output_path, lcd_name)
 
     digit_files = sorted(glob.glob(os.path.join(sub_dir_path, "d*.png")))
     yolo = load_YOLO(LCD_MODEL_PATH)
@@ -141,7 +140,7 @@ def lcd_process_new_image(image, margin=300):
 
     return padded_img
     
-def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
+def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path):
     """
     Calculates the temperature from the reading.
 
@@ -152,7 +151,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug):
         - thermo_name -- name of the thermoemter file
     
     """
-    out_dir = os.path.join(OUTPUT_DIR, thermo_name)
+    out_dir = os.path.join(output_path, thermo_name)
 
     # check that t.png exists
     t_path = os.path.join(sub_dir_path, "t.png")
@@ -422,11 +421,11 @@ def group_similar_y(yPositionsSorted, groupingThreshold):
     return result
 
 
-def run_task3(image_path, config):
+def run_task3(image_path, config, output_path):
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
     # clear file directory
-    clear_file_dir(OUTPUT_DIR)
+    clear_file_dir(output_path)
     
     # find all the .sub directories in the input directory
     if not os.path.isdir(image_path):
@@ -440,16 +439,16 @@ def run_task3(image_path, config):
 
     print(f"    [Task 3] Found {len(sub_dirs)} sub-directoy(ies).")
 
-    process_task3(sub_dirs, image_path, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG)
+    process_task3(sub_dirs, image_path, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
    
-def process_task3(sub_dirs, image_path, allowDebugBPM, allowDebugTHERMO):
+def process_task3(sub_dirs, image_path, allowDebugBPM, allowDebugTHERMO, output_path):
 
     for dname in sub_dirs:
         sub_dir_path = os.path.join(image_path, dname)
 
         if dname.startswith("lcd"):
-            recognise_lcd_digits(sub_dir_path, dname, allowDebugBPM)
+            recognise_lcd_digits(sub_dir_path, dname, allowDebugBPM, output_path)
         elif dname.startswith("thermo"):
-            calculate_temperature(sub_dir_path, dname, allowDebugTHERMO)
+            calculate_temperature(sub_dir_path, dname, allowDebugTHERMO, output_path)
         else:
             print(f"    [Task 3] Unknown sub-directory: {dname}. Skipping.")
