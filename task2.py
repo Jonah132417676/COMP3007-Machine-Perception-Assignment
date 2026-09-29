@@ -342,17 +342,17 @@ def threshold_fluid(image):
         - image -- thermometer image
     """
     # red colour wraps around hue range so two masks are required
-    lower = np.array([0, 50, 40])
-    higher = np.array([15, 255, 255])
+    lower = np.array([10, 70, 55])
+    higher = np.array([160, 255, 255])
     res1 = hsv_threshold(image, lower, higher) 
 
-    lower = np.array([165, 50, 40])
-    higher = np.array([180, 255, 255])
-    res2 = hsv_threshold(image, lower, higher) 
+    #lower = np.array([165, 50, 40])
+    #higher = np.array([180, 255, 255])
+    #res2 = hsv_threshold(image, lower, higher) 
 
     # combine all hsv thresholded detections together
-    result = cv2.bitwise_or(res1, res2)
-    return result
+    #result = cv2.bitwise_or(res1, res2)
+    return res1
 def run_task2(image_path, config, output_path):
 
     os.makedirs(output_path, exist_ok=True)
