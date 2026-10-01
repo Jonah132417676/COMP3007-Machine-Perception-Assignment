@@ -20,7 +20,7 @@ Object Detection: YOLO
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-27-09
+Last Modified: 2026-1-10
 
 """
 
@@ -39,12 +39,15 @@ THERMO_LABEL = "thermometer"
 
 BPM_LABEL = "blood pressure monitor"
 BPM_THERMOMETER_DEETECTOR_MODEL_PATH = os.path.join("data/task1/","bpm_thermomter_detector.pt")
-LCD_DISPLAY_DETECTOR_MODEL_PATH = os.path.join("data/task1/","lcd_display_detector.pt")
 
 TEMPLATE_LCD_PATH = os.path.join("data/task1/templates/", "template_lcd.png")
 TEMPLATE_THERMO_PATH = os.path.join("data/task1/templates/", "template_thermo.png")
+# LCD crop
+MIN_X_BPM_LCD_DISPLAY_TEMPLATE_CROP = 600
+MAX_X_BPM_LCD_DISPLAY_TEMPLATE_CROP = 1200
+MIN_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP = 375
+MAX_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP = 1235
 
-BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY = 0.25
 BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.5
 
 # keypoint matching how many matches required
@@ -103,7 +106,7 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path):
 
     # load models
     bpm_model_detector = load_YOLO(BPM_THERMOMETER_DEETECTOR_MODEL_PATH)
-    lcd_display_detector = load_YOLO(LCD_DISPLAY_DETECTOR_MODEL_PATH)
+    #lcd_display_detector = load_YOLO(LCD_DISPLAY_DETECTOR_MODEL_PATH)
      # task 1 logic
     for i, img_file in enumerate(images):
         img = cv2.imread(img_file)
@@ -119,6 +122,10 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path):
         result = results[0]
         # for each result    
         class_names = result.names
+
+        if allowBPMDebug or allowTHERMODebug:
+            plt.imshow(result.plot())
+            plt.show()
 
         # NEGATIVE
         if result is None or len(result.boxes) == 0:
@@ -150,7 +157,7 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path):
                     plt.imshow(result.plot())
                     plt.show()
                 # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
-                final_image = process_bpm_image(img, tensorBox, lcd_display_detector, allowBPMDebug)
+                final_image = process_bpm_image(img, tensorBox, allowBPMDebug)
 
                 out_name = f"lcd{img_num}.png"
 
@@ -190,7 +197,7 @@ def process_thermometer_image(img, tensorBox, allowDebug):
 
     return final_image
 
-def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
+def process_bpm_image(img, tensorBox, allowDebug):
     """
     For a bpm image, detect the lcd and crop it. Then map the cropped lcd to the template orientated lcd screen through SIFT.
 
@@ -208,8 +215,15 @@ def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
     # bpm (crop to bounding boxes)
     bpmImg = crop_object_box(tensorBox, img)
 
+    bpmAligned = sift_keypoint_perspective_warp(templateLCDImage, bpmImg, allowDebug)
+
+    if allowDebug:
+        plt.imshow(bpmAligned)
+        plt.show()
+
     # detect lcd screen using lcd screen detector
-    lcdResult = lcd_display_detector.predict(bpmImg, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0]
+    """
+    lcdResult = lcd_display_detector.predict(bpmAligned, conf=BASE_CONFIDENCE_THRESHOLD_LCD_DISPLAY, retina_masks=True)[0]
 
     if lcdResult.boxes is None or len(lcdResult.boxes) == 0:
         print("    [Task 1] No LCD screen detected inside BPM bounding box.")
@@ -218,14 +232,16 @@ def process_bpm_image(img, tensorBox, lcd_display_detector, allowDebug):
     lcdDisplayBox = lcdResult.boxes.xyxy[0]
     
     # crop it (to lcd screen)
-    lcdCropped = crop_object_box(lcdDisplayBox, bpmImg)
-
-    final_image = sift_keypoint_perspective_warp(templateLCDImage, lcdCropped, allowDebug)
+    lcdCropped = crop_object_box(lcdDisplayBox, bpmAligned)
+    """
+    # use crop base image
+    lcdCropped = bpmAligned[MIN_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP:MAX_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP,
+                            MIN_X_BPM_LCD_DISPLAY_TEMPLATE_CROP:MAX_X_BPM_LCD_DISPLAY_TEMPLATE_CROP]
     if allowDebug:
-        plt.imshow(final_image)
+        plt.imshow(lcdCropped)
         plt.show()
 
-    return final_image
+    return lcdCropped
 
 def sift_keypoint_perspective_warp(image1, image2, allowDebug):
     """

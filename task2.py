@@ -6,7 +6,7 @@ Given a cropped image, you must segment into individual digits (BPM) or segment 
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-27-09
+Last Modified: 2026-1-10
 
 """
 
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from ml_utils import load_YOLO, hsv_threshold, clear_file_dir
 
 ALLOW_BPM_DEBUG = False
-ALLOW_THERMO_DEBUG = True
+ALLOW_THERMO_DEBUG = False
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
@@ -30,7 +30,7 @@ MAX_FLUID_Y_THRESHOLD = 2240/2700
 
 
 HUE_THRESHOLD_THERMOMETER = 80
-HOUGH_LINES_THRESHOLD_FLUID = 15
+HOUGH_LINES_THRESHOLD_FLUID = 5
 THERMO_ZOOM_DIVIDER = 15
 DILATE_KERNEL_SIZE = 20
 
@@ -69,7 +69,9 @@ def segment_lcd(image, lcd_name, allowDebug, output_path):
     digitDetector = load_YOLO(LCD_MODEL_PATH)
 
     result = digitDetector.predict(image, retina_masks = True)[0]
-    
+    if allowDebug:
+        plt.imshow(result.plot())
+        plt.show()
 
     # sort by y then x
     digitBoxesOrder = [box for box in result.boxes]
@@ -137,9 +139,6 @@ def segment_thermo(image, thermo_name, allowDebug, output_path):
     mask[0:top_bound, :] = 0
     mask[bottom_bound:h, :] = 0  
 
-    plt.imshow(mask)
-    plt.show()
-
     outVal = get_highest_fluid_endpoint(mask,  DILATE_KERNEL_SIZE, allowDebug)
 
     if outVal: # unpack if it exists
@@ -198,7 +197,7 @@ def plot_points(boxes, result, colour = "red"):
         plt.scatter(xcenter, ycenter, color=colour, s=40, zorder=5)
 
 
-def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tolerance = 20):
+def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.2, angle_tolerance = 20):
     """
     Filters the outlier lines that do not match thermometer oriented upright readings.
         - removes non centered lines
@@ -229,7 +228,7 @@ def remove_outlier_lines_thermo(lines, width, x_tolerance_mult = 0.25, angle_tol
         dx = x2 - x1
         dy = y2 - y1
         angle =  abs(np.degrees(np.arctan2(dy, dx)))
-        angledRule = 90 - angle_tolerance <= angle <= 90 + angle_tolerance
+        angledRule = ((90 - angle_tolerance) <= angle <= (90 + angle_tolerance))
 
         if centeredRule and angledRule:
             valid_lines.append(line)
@@ -342,17 +341,17 @@ def threshold_fluid(image):
         - image -- thermometer image
     """
     # red colour wraps around hue range so two masks are required
-    lower = np.array([10, 70, 55])
-    higher = np.array([160, 255, 255])
+    lower = np.array([0, 70, 55])
+    higher = np.array([15, 255, 255])
     res1 = hsv_threshold(image, lower, higher) 
 
-    #lower = np.array([165, 50, 40])
-    #higher = np.array([180, 255, 255])
-    #res2 = hsv_threshold(image, lower, higher) 
+    lower = np.array([165, 50, 40])
+    higher = np.array([180, 255, 255])
+    res2 = hsv_threshold(image, lower, higher) 
 
     # combine all hsv thresholded detections together
-    #result = cv2.bitwise_or(res1, res2)
-    return res1
+    result = cv2.bitwise_or(res1, res2)
+    return result
 def run_task2(image_path, config, output_path):
 
     os.makedirs(output_path, exist_ok=True)

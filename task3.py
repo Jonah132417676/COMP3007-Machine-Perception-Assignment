@@ -6,7 +6,7 @@ Produce predictions on the digit readings or the thermometer readings.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-27-09
+Last Modified: 2026-1-10
 
 """
 
@@ -20,7 +20,7 @@ from ml_utils import load_YOLO, clear_file_dir
 from task2 import get_highest_fluid_endpoint
 
 ALLOW_BPM_DEBUG = False
-ALLOW_THERMO_DEBUG = True
+ALLOW_THERMO_DEBUG = False
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
@@ -28,10 +28,16 @@ THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_d
 MORPHED_KERNEL_SIZE = 1
 LEFT_THERMO_TICK_THRESHOLD = 0.3 
 RIGHT_THERMO_TICK_THRESHOLD = 0.7
-Y_TICKS_GROUPING_THRESHOLD = 6
+Y_TICKS_GROUPING_THRESHOLD = 4
+
 THERMO_READING_DIGIT_Y_TOLERANCE = 20
-THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.85
-HOUGHLINES_THRESHOLD = 20
+THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.10
+MIN_X_THERMO_LINE = 140
+MAX_X_THERMO_LINE = 345
+
+HOUGHLINES_THRESHOLD = 10
+
+
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -81,7 +87,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path):
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # obtain the singular result
-        result = yolo.predict(processed_img, retina_masks = False)[0]
+        result = yolo.predict(processed_img, retina_masks = False, iou=0.4)[0]
         class_names = result.names
 
         if result is None or len(result.boxes) == 0:
@@ -93,6 +99,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path):
         # set default digit
         digit = -1
         # identify digit got the boxes
+        print(result.boxes)
         best_box = result.boxes[0]
         class_id = int(best_box.cls[0].item())
         digit = class_names[class_id]
@@ -226,7 +233,10 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path):
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
         # model used heavy augmentation as there wasnt many samples
         number_reading_detector = load_YOLO(THERMO_NUMBER_READING_DETECTOR_MODEL_PATH)
-        result = number_reading_detector.predict(image, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True)[0]
+        # process image to remove lines in the centre and only include numbers
+        processedImage = remove_ticks(image)
+
+        result = number_reading_detector.predict(processedImage, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True, iou=0.4)[0]
         if allowDebug:
             plt.imshow(result.plot())
             plt.show()
@@ -246,8 +256,24 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path):
 
     else:
         print("     [Task 3] Thermo lines not detected ticks.")
-         
 
+def remove_ticks(image):
+    h, w = image.shape[:2]
+    
+    # padding color 
+    top_edge = image[0, :, :]
+    bottom_edge = image[-1, :, :]
+    left_edge = image[:, 0, :]
+    right_edge = image[:, -1, :]
+    # sample border pixels
+    # r, c, BGR
+    border_pixels = np.concatenate([top_edge, bottom_edge, left_edge, right_edge], axis=0)
+    avg_color = border_pixels.mean(axis=0).astype(int).tolist()
+
+    # then fill 
+    processedImage = image.copy()
+    processedImage[:,MIN_X_THERMO_LINE:MAX_X_THERMO_LINE] = avg_color
+    return processedImage
 def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance, showDebug):
     temperatures = []
     x_end_point, y_maximum_point = fluidEndpointPos
