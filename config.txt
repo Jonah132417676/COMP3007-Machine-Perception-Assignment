@@ -8,3 +8,27 @@ model:yolov8n.pt
 learning_rate: 0.001
 batch_size:16
 num_epochs:300
+
+# task 1
+task1_min_x_lcd_crop:600
+task1_max_x_lcd_crop:1200
+task1_min_y_lcd_crop:375
+task1_max_y_lcd_crop:1235
+task1_base_confidence_threshold_bpm_thermometer:0.5
+task1_sift_keypoint_matches_required:7
+
+# task 2
+task2_line_threshold_fluid:5
+task2_thermo_zoom_divider:15
+task2_dilate_kernel_size:20
+
+# task 3
+task3_morphed_kernel_size:1
+task3_left_thermo_tick_threshold:0.3
+task3_right_thermo_tick_threshold:0.7
+task3_y_ticks_grouping_threshold:4
+task3_thermo_y_reading_tolerance:20
+task3_thermo_number_detector_confidence_threshold:0.10
+task3_min_x_thermo_line:140
+task3_max_x_thermo_line:345
+task3_hough_lines_threshold:10

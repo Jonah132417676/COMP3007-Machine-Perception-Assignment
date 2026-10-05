@@ -6,7 +6,7 @@ Given a cropped image, you must segment into individual digits (BPM) or segment 
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-1-10
+Last Modified: 2026-5-10
 
 """
 
@@ -23,16 +23,10 @@ ALLOW_THERMO_DEBUG = False
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
-MIN_FLUID_X_THRESHOLD = 208 / 480
+MIN_FLUID_X_THRESHOLD = 208/480
 MAX_FLUID_X_THRESHOLD = 295/480
 MIN_FLUID_Y_THRESHOLD = 400/2700
 MAX_FLUID_Y_THRESHOLD = 2240/2700
-
-
-HUE_THRESHOLD_THERMOMETER = 80
-HOUGH_LINES_THRESHOLD_FLUID = 5
-THERMO_ZOOM_DIVIDER = 15
-DILATE_KERNEL_SIZE = 20
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -50,7 +44,7 @@ def save_output(output_path, content, output_type='txt'):
 
 
 
-def segment_lcd(image, lcd_name, allowDebug, output_path):
+def segment_lcd(image, lcd_name, allowDebug, output_path, configs):
     """
     Segments the image into individual digits.
 
@@ -109,7 +103,7 @@ def segment_lcd(image, lcd_name, allowDebug, output_path):
         print(f"    [Task 2] {num_digits} digit images: saved t.png to {sub_dir}")
 
     
-def segment_thermo(image, thermo_name, allowDebug, output_path):
+def segment_thermo(image, thermo_name, allowDebug, output_path, configs):
     """
     Segments the thermo for fluid and markings.
 
@@ -139,14 +133,14 @@ def segment_thermo(image, thermo_name, allowDebug, output_path):
     mask[0:top_bound, :] = 0
     mask[bottom_bound:h, :] = 0  
 
-    outVal = get_highest_fluid_endpoint(mask,  DILATE_KERNEL_SIZE, allowDebug)
+    outVal = get_highest_fluid_endpoint(mask,  int(configs["task2_dilate_kernel_size"]), allowDebug, configs)
 
     if outVal: # unpack if it exists
         x, y_maximum_point = outVal
     else:
         return
     
-    zoomHeight = h // THERMO_ZOOM_DIVIDER # height of crop will be a quarter of total thermometer height
+    zoomHeight = h // int(configs["task2_thermo_zoom_divider"]) # height of crop will be a quarter of total thermometer height
     crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
     if allowDebug:
         plt.imshow(crop)
@@ -255,7 +249,7 @@ def extract_main_fluid_column(binary_mask):
     clean_mask[labels == main_label] = 255
     return clean_mask
 
-def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool):
+def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool, configs:dict):
     """
     Obtains the highest fluid point on the thermometer image.
 
@@ -299,7 +293,7 @@ def get_highest_fluid_endpoint(image, morphed_kernel_size: int, allowDebug: bool
         plt.show()
     
     edges = cv2.Canny(clean_fluid_mask, 50, 150, apertureSize=3)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=HOUGH_LINES_THRESHOLD_FLUID, minLineLength=40, maxLineGap=5)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=int(configs["task2_line_threshold_fluid"]), minLineLength=40, maxLineGap=5)
 
     # find the top of the resulting region is fluid end point by finding the key point
     if lines is not None:
@@ -352,7 +346,7 @@ def threshold_fluid(image):
     # combine all hsv thresholded detections together
     result = cv2.bitwise_or(res1, res2)
     return result
-def run_task2(image_path, config, output_path):
+def run_task2(image_path, configs, output_path):
 
     os.makedirs(output_path, exist_ok=True)
     clear_file_dir(output_path)
@@ -366,9 +360,9 @@ def run_task2(image_path, config, output_path):
 
     print(f"    [Task 2] Found {len(png_files)} input images(s).")
 
-    process_task2(png_files, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
+    process_task2(png_files, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path, configs)
 
-def process_task2(png_files, allowDebugLCD, allowDebugTHERMO,output_path):
+def process_task2(png_files, allowDebugLCD, allowDebugTHERMO,output_path, configs):
     """
     Decides which process to use for lcd and thermometers.
 
@@ -386,8 +380,8 @@ def process_task2(png_files, allowDebugLCD, allowDebugTHERMO,output_path):
             continue
 
         if fname.startswith("lcd"):
-            segment_lcd(img, base_name, allowDebugLCD, output_path)
+            segment_lcd(img, base_name, allowDebugLCD, output_path, configs)
         elif fname.startswith("thermo"):
-            segment_thermo(img, base_name, allowDebugTHERMO, output_path)
+            segment_thermo(img, base_name, allowDebugTHERMO, output_path, configs)
         else:
             print(f"    [Task 2] unknown file type: {fname}. Skipping")
