@@ -272,7 +272,7 @@ def sift_keypoint_perspective_warp(image1, image2, allowDebug, configs):
         final_image = cv2.warpPerspective(image2, M, (width, height))
         return final_image
     else:
-        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}, needed: {MIN_MATCH_COUNT}")
+        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}, needed: {configs["task1_sift_keypoint_matches_required"]}")
         return None
     
 def obtain_good_matches(image1, image2):
