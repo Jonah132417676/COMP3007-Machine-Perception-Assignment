@@ -59,10 +59,6 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path):
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
-    improve task
-    3 lcd reading, so it segments the lcd digit, th
-    en pads to the background coluor (so its strong
-    er)
     Pipeline: Input -> [Yolov8 Digit Detection] -> Output
     Input:
         - sub_dir_path -- path to the subdirectory
@@ -258,6 +254,12 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path):
         print("     [Task 3] Thermo lines not detected ticks.")
 
 def remove_ticks(image):
+    """
+    Removes the ticks from the input thermometer image.
+    
+    Inputs:
+        - image -- thermometer image
+    """
     h, w = image.shape[:2]
     
     # padding color 
@@ -275,6 +277,14 @@ def remove_ticks(image):
     processedImage[:,MIN_X_THERMO_LINE:MAX_X_THERMO_LINE] = avg_color
     return processedImage
 def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance, showDebug):
+    """
+    Find the values and groups of classified number digits to get the base reference thermometer reading. (Celcius)
+
+    Input:
+        - image -- the image to analyse
+        - result -- results of the prediction number detector
+        - fluidEndpointPos -- position of the fluid end point.
+    """
     temperatures = []
     x_end_point, y_maximum_point = fluidEndpointPos
     class_names = result.names
