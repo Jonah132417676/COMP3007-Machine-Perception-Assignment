@@ -99,6 +99,7 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
      # task 1 logic
     for i, img_file in enumerate(images):
         img = cv2.imread(img_file)
+
         if img is None:
             print(f"    [Task 1] Could not read {img_file}. Skipping.")
             continue
@@ -106,8 +107,8 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
         # extract image number from the file name (img2.jpg -> 2)
         basename = os.path.splitext(os.path.basename(img_file))[0]
         img_num = basename.replace("img", "")
-
-        results = bpm_model_detector.predict(img, conf=float(configs["task1_base_confidence_threshold_bpm_thermometer"]), retina_masks=True)
+        
+        results = bpm_model_detector.predict(img, verbose=False, conf=float(configs["task1_base_confidence_threshold_bpm_thermometer"]))
         result = results[0]
         # for each result    
         class_names = result.names
@@ -155,8 +156,11 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
                 print(f"    [Task 1] Object Detection not available for object label: {label_name}")
                 out_name = ""
             
-            final_output_path = os.path.join(output_path, out_name)
-            save_output(final_output_path, final_image, output_type='image')
+            if final_image is not None:
+                final_output_path = os.path.join(output_path, out_name)
+                save_output(final_output_path, final_image, output_type='image')
+            else:
+                print(f"    [Task 1] {basename}.jpg -> Processing failed, nothing saved.")
 
 def process_thermometer_image(img, tensorBox, allowDebug, configs):
     """
@@ -206,6 +210,11 @@ def process_bpm_image(img, tensorBox, allowDebug, configs):
 
     bpmAligned = sift_keypoint_perspective_warp(templateLCDImage, bpmImg, allowDebug, configs)
 
+    if bpmAligned is None:
+        print("    [Task 1] SIFT alignment failed. Returning unaligned crop.")
+        # fallback -> unaligned cropped image if warp fails
+        bpmAligned = bpmImg
+        
     if allowDebug:
         plt.imshow(bpmAligned)
         plt.show()
@@ -272,7 +281,7 @@ def sift_keypoint_perspective_warp(image1, image2, allowDebug, configs):
         final_image = cv2.warpPerspective(image2, M, (width, height))
         return final_image
     else:
-        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}, needed: {configs["task1_sift_keypoint_matches_required"]}")
+        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}")
         return None
     
 def obtain_good_matches(image1, image2):

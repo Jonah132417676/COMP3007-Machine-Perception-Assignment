@@ -69,7 +69,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path, config
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # obtain the singular result
-        result = yolo.predict(processed_img, retina_masks = False, iou=0.4)[0]
+        result = yolo.predict(processed_img, verbose=False, iou=0.4)[0]
         class_names = result.names
 
         if result is None or len(result.boxes) == 0:
@@ -199,13 +199,14 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         imgCopy = image.copy()
         valid_lines = filter_horizontal_lines(lines, 5)
 
-        for line in valid_lines:
-            x1, y1, x2, y2 = line[0]
-
-
-            cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        if not valid_lines:
+            print("    [Task 3] No horizontal tick lines found.")
+            return 
 
         if allowDebug:
+            for line in valid_lines:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
             plt.imshow(imgCopy)
             plt.show()
 
@@ -218,7 +219,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         # process image to remove lines in the centre and only include numbers
         processedImage = remove_ticks(image, configs)
 
-        result = number_reading_detector.predict(processedImage, conf=float(configs["task3_thermo_number_detector_confidence_threshold"]), retina_masks = True, iou=0.4)[0]
+        result = number_reading_detector.predict(processedImage, conf=float(configs["task3_thermo_number_detector_confidence_threshold"]), verbose=False, iou=0.4)[0]
         if allowDebug:
             plt.imshow(result.plot())
             plt.show()
@@ -403,12 +404,11 @@ def calculate_average_y_dist_per_tick(lines, image, allowDebug, configs):
         plt.imshow(imgCopy)
         plt.show()
 
-    avgYDistBetweenTicks = 0
-    for i in range(0, len(cleanedYPositions) - 1):
-        avgYDistBetweenTicks += abs(cleanedYPositions[i] - cleanedYPositions[i + 1]) # difference between sorted
+    if len(cleanedYPositions) < 2:
+        return 0 # Prevents division by zero
 
-    avgYDistBetweenTicks /= len(cleanedYPositions)
-
+    total_dist = sum(abs(cleanedYPositions[i] - cleanedYPositions[i + 1]) for i in range(len(cleanedYPositions) - 1))
+    avgYDistBetweenTicks = total_dist / (len(cleanedYPositions) - 1) # divides by the gaps
     print(f"     [Task 3] Thermo calculated average y dist between ticks: {avgYDistBetweenTicks}")
     return avgYDistBetweenTicks
     
@@ -452,6 +452,7 @@ def run_task3(image_path, configs, output_path):
     # find all the .sub directories in the input directory
     if not os.path.isdir(image_path):
         print(f"    [Task 3] Input path does not exist: {image_path}")
+        return
 
     # obtain all sub directories
     sub_dirs = sorted([d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))])

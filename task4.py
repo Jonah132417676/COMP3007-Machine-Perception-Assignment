@@ -138,6 +138,8 @@ def process_task4(image_path, images, config, output_path):
 
 def run_task4(image_path, config, output_path):
 
+    os.makedirs(output_path, exist_ok=True)
+
     # find all the jpg images in input directory
     images = sorted(glob.glob(os.path.join(image_path, "img*.jpg")))
 

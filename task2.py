@@ -62,7 +62,7 @@ def segment_lcd(image, lcd_name, allowDebug, output_path, configs):
     # First run the lcd digit detector into the image
     digitDetector = load_YOLO(LCD_MODEL_PATH)
 
-    result = digitDetector.predict(image, retina_masks = True)[0]
+    result = digitDetector.predict(image, verbose=False)[0]
     if allowDebug:
         plt.imshow(result.plot())
         plt.show()
@@ -141,7 +141,9 @@ def segment_thermo(image, thermo_name, allowDebug, output_path, configs):
         return
     
     zoomHeight = h // int(configs["task2_thermo_zoom_divider"]) # height of crop will be a quarter of total thermometer height
-    crop = image[y_maximum_point - zoomHeight: y_maximum_point + zoomHeight, :]
+    y_start = max(0, y_maximum_point - zoomHeight)
+    y_end = min(h, y_maximum_point + zoomHeight)
+    crop = image[y_start: y_end, :]
     if allowDebug:
         plt.imshow(crop)
         plt.show()
@@ -240,7 +242,7 @@ def extract_main_fluid_column(binary_mask):
     # the main fluid body will most like havethe greatest area
 
     areas = stats[1:, cv2.CC_STAT_AREA]
-    if areas is not None or len(areas) == 0:
+    if len(areas) == 0:
         return binary_mask
 
     main_label = np.argmax(areas) + 1
