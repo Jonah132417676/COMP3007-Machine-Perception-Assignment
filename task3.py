@@ -6,7 +6,7 @@ Produce predictions on the digit readings or the thermometer readings.
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-5-10
+Last Modified: 2026-7-10
 
 """
 
@@ -20,10 +20,24 @@ from ml_utils import load_YOLO, clear_file_dir
 from task2 import get_highest_fluid_endpoint
 
 ALLOW_BPM_DEBUG = False
-ALLOW_THERMO_DEBUG = True
+ALLOW_THERMO_DEBUG = False
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
+
+MORPHED_KERNEL_SIZE = 1
+LEFT_THERMO_TICK_THRESHOLD = 0.3 
+RIGHT_THERMO_TICK_THRESHOLD = 0.7
+Y_TICKS_GROUPING_THRESHOLD = 4
+
+THERMO_READING_DIGIT_Y_TOLERANCE = 20
+THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD = 0.10
+MIN_X_THERMO_LINE = 140
+MAX_X_THERMO_LINE = 345
+
+HOUGHLINES_THRESHOLD = 10
+
+
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -41,7 +55,7 @@ def save_output(output_path, content, output_type='txt'):
 
 # pad size trial and error for the model
 # 450
-def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path, configs):
+def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path):
     """
     Recognise the digit from the image. Additional processing of digit images include padding and setting padding color, which helps the model to identify the digits better.
     
@@ -69,7 +83,7 @@ def recognise_lcd_digits(sub_dir_path, lcd_name, allowDebug, output_path, config
         dname = os.path.splitext(os.path.basename(dfile))[0] # d1, d2 ...
 
         # obtain the singular result
-        result = yolo.predict(processed_img, verbose=False, iou=0.4)[0]
+        result = yolo.predict(processed_img, retina_masks = False, iou=0.4)[0]
         class_names = result.names
 
         if result is None or len(result.boxes) == 0:
@@ -129,7 +143,7 @@ def lcd_process_new_image(image, margin=300):
 
     return padded_img
     
-def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, configs):
+def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path):
     """
     Calculates the temperature from the reading.
 
@@ -153,7 +167,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
     h, w = image.shape[:2]
     # find fluid end point position (y).
     # convert to hsv (hue, sat, val) space img 
-    outVal = get_highest_fluid_endpoint(image, int(configs["task3_morphed_kernel_size"]), allowDebug, configs)
+    outVal = get_highest_fluid_endpoint(image, MORPHED_KERNEL_SIZE, allowDebug)
     if outVal is not None: # unpack if it exists
         x_end_point, y_maximum_point = outVal
     else:
@@ -175,8 +189,8 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         plt.show()
 
     # remove sides (numbers may detect lines so remove quuarter from either side)
-    left_bound = int(w * float(configs["task3_left_thermo_tick_threshold"]))
-    right_bound = int(w * float(configs["task3_right_thermo_tick_threshold"]))
+    left_bound = int(w * LEFT_THERMO_TICK_THRESHOLD)
+    right_bound = int(w * RIGHT_THERMO_TICK_THRESHOLD)
     mask[:, 0:left_bound] = 0
     mask[:, right_bound:w] = 0  
 
@@ -190,7 +204,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         image=edges, 
         rho=1, 
         theta=np.pi / 360, 
-        threshold=float(configs["task3_hough_lines_threshold"]), # lower threshold as zoomed in more
+        threshold=HOUGHLINES_THRESHOLD, # lower threshold as zoomed in more
         )
         
    
@@ -199,27 +213,26 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         imgCopy = image.copy()
         valid_lines = filter_horizontal_lines(lines, 5)
 
-        if not valid_lines:
-            print("    [Task 3] No horizontal tick lines found.")
-            return 
+        for line in valid_lines:
+            x1, y1, x2, y2 = line[0]
+
+
+            cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         if allowDebug:
-            for line in valid_lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(imgCopy, (x1, y1), (x2, y2), (0, 255, 0), 2)
             plt.imshow(imgCopy)
             plt.show()
 
         # obtain the average y distance per tick
-        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image, allowDebug, configs)
+        avgYDistPerTick = calculate_average_y_dist_per_tick(valid_lines, image, allowDebug)
 
         # find the temperature reading on the left side of thermometer, remove set 0 the right side
         # model used heavy augmentation as there wasnt many samples
         number_reading_detector = load_YOLO(THERMO_NUMBER_READING_DETECTOR_MODEL_PATH)
         # process image to remove lines in the centre and only include numbers
-        processedImage = remove_ticks(image, configs)
+        processedImage = remove_ticks(image)
 
-        result = number_reading_detector.predict(processedImage, conf=float(configs["task3_thermo_number_detector_confidence_threshold"]), verbose=False, iou=0.4)[0]
+        result = number_reading_detector.predict(processedImage, conf=THERMO_NUMBER_DETECTOR_CONFIDENCE_THRESHOLD, retina_masks = True, iou=0.4)[0]
         if allowDebug:
             plt.imshow(result.plot())
             plt.show()
@@ -227,7 +240,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         print(f"    [Task 3] Thermo Reading Detector Amount Boxes: {len(result.boxes)}")
 
         # average all temperatures (on left side so don't incldue fahrenheit reading)
-        temperatures = discover_temperature_readings(image, result, (x_end_point, y_maximum_point), avgYDistPerTick, int(configs["task3_thermo_y_reading_tolerance"]), allowDebug)
+        temperatures = discover_temperature_readings(image, result, (x_end_point, y_maximum_point), avgYDistPerTick, THERMO_READING_DIGIT_Y_TOLERANCE, allowDebug)
         # find the average temperature calculation for all left side box readings relative
         if len(temperatures) > 0:
             avgTemperature = round(np.array(temperatures).mean())
@@ -240,7 +253,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
     else:
         print("     [Task 3] Thermo lines not detected ticks.")
 
-def remove_ticks(image, configs):
+def remove_ticks(image):
     """
     Removes the ticks from the input thermometer image.
     
@@ -261,7 +274,7 @@ def remove_ticks(image, configs):
 
     # then fill 
     processedImage = image.copy()
-    processedImage[:,int(configs["task3_min_x_thermo_line"]):int(configs["task3_max_x_thermo_line"])] = avg_color
+    processedImage[:,MIN_X_THERMO_LINE:MAX_X_THERMO_LINE] = avg_color
     return processedImage
 def discover_temperature_readings(image, result, fluidEndpointPos: tuple[float], yDistPerTick, y_tolerance, showDebug):
     """
@@ -378,7 +391,7 @@ def filter_horizontal_lines(lines, angle_tolerance):
 
     return valid_lines
 
-def calculate_average_y_dist_per_tick(lines, image, allowDebug, configs):
+def calculate_average_y_dist_per_tick(lines, image, allowDebug):
 
     # to calculate ticks per y, find the average distance between each tick
     # find y positions of each line
@@ -393,7 +406,7 @@ def calculate_average_y_dist_per_tick(lines, image, allowDebug, configs):
     yPositions.sort(key=lambda y: y) 
 
     # since there is cluster position ups in y positions, obtain the average of close double ups
-    cleanedYPositions = group_similar_y(yPositions, int(configs["task3_y_ticks_grouping_threshold"]))
+    cleanedYPositions = group_similar_y(yPositions, Y_TICKS_GROUPING_THRESHOLD)
 
     imgCopy = image.copy()
     h, w = imgCopy.shape[:2]
@@ -404,11 +417,12 @@ def calculate_average_y_dist_per_tick(lines, image, allowDebug, configs):
         plt.imshow(imgCopy)
         plt.show()
 
-    if len(cleanedYPositions) < 2:
-        return 0 # Prevents division by zero
+    avgYDistBetweenTicks = 0
+    for i in range(0, len(cleanedYPositions) - 1):
+        avgYDistBetweenTicks += abs(cleanedYPositions[i] - cleanedYPositions[i + 1]) # difference between sorted
 
-    total_dist = sum(abs(cleanedYPositions[i] - cleanedYPositions[i + 1]) for i in range(len(cleanedYPositions) - 1))
-    avgYDistBetweenTicks = total_dist / (len(cleanedYPositions) - 1) # divides by the gaps
+    avgYDistBetweenTicks /= len(cleanedYPositions)
+
     print(f"     [Task 3] Thermo calculated average y dist between ticks: {avgYDistBetweenTicks}")
     return avgYDistBetweenTicks
     
@@ -443,7 +457,7 @@ def group_similar_y(yPositionsSorted, groupingThreshold):
     return result
 
 
-def run_task3(image_path, configs, output_path):
+def run_task3(image_path, config, output_path):
 
     os.makedirs(output_path, exist_ok=True)
     # clear file directory
@@ -452,7 +466,6 @@ def run_task3(image_path, configs, output_path):
     # find all the .sub directories in the input directory
     if not os.path.isdir(image_path):
         print(f"    [Task 3] Input path does not exist: {image_path}")
-        return
 
     # obtain all sub directories
     sub_dirs = sorted([d for d in os.listdir(image_path) if os.path.isdir(os.path.join(image_path, d))])
@@ -462,16 +475,16 @@ def run_task3(image_path, configs, output_path):
 
     print(f"    [Task 3] Found {len(sub_dirs)} sub-directoy(ies).")
 
-    process_task3(sub_dirs, image_path, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path, configs)
+    process_task3(sub_dirs, image_path, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
    
-def process_task3(sub_dirs, image_path, allowDebugBPM, allowDebugTHERMO, output_path, configs):
+def process_task3(sub_dirs, image_path, allowDebugBPM, allowDebugTHERMO, output_path):
 
     for dname in sub_dirs:
         sub_dir_path = os.path.join(image_path, dname)
 
         if dname.startswith("lcd"):
-            recognise_lcd_digits(sub_dir_path, dname, allowDebugBPM, output_path, configs)
+            recognise_lcd_digits(sub_dir_path, dname, allowDebugBPM, output_path)
         elif dname.startswith("thermo"):
-            calculate_temperature(sub_dir_path, dname, allowDebugTHERMO, output_path, configs)
+            calculate_temperature(sub_dir_path, dname, allowDebugTHERMO, output_path)
         else:
             print(f"    [Task 3] Unknown sub-directory: {dname}. Skipping.")

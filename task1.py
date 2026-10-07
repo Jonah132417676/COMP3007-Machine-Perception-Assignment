@@ -20,7 +20,7 @@ Object Detection: YOLO
 
 Author: Zhong Cheng Lau 
 
-Last Modified: 2026-5-10
+Last Modified: 2026-7-10
 
 """
 
@@ -36,11 +36,22 @@ ALLOW_BPM_DEBUG = False
 ALLOW_THERMO_DEBUG = False
 
 THERMO_LABEL = "thermometer"
-BPM_LABEL = "blood pressure monitor"
 
+BPM_LABEL = "blood pressure monitor"
 BPM_THERMOMETER_DEETECTOR_MODEL_PATH = os.path.join("data/task1/","bpm_thermomter_detector.pt")
+
 TEMPLATE_LCD_PATH = os.path.join("data/task1/templates/", "template_lcd.png")
 TEMPLATE_THERMO_PATH = os.path.join("data/task1/templates/", "template_thermo.png")
+# LCD crop
+MIN_X_BPM_LCD_DISPLAY_TEMPLATE_CROP = 600
+MAX_X_BPM_LCD_DISPLAY_TEMPLATE_CROP = 1200
+MIN_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP = 375
+MAX_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP = 1235
+
+BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER = 0.5
+
+# keypoint matching how many matches required
+MIN_MATCH_COUNT = 7
 
 def save_output(output_path, content, output_type='txt'):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -57,7 +68,7 @@ def save_output(output_path, content, output_type='txt'):
         print("Unsupported output type. Use 'txt' or 'image'.")
 
 
-def run_task1(image_path, configs, output_path):
+def run_task1(image_path, config, output_path):
     """
     Entry point for task1 called by assignment.py
 
@@ -81,9 +92,9 @@ def run_task1(image_path, configs, output_path):
 
     print(f"    [Task 1] Found {len(images)} input images(s).")
 
-    process_task1(images, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path, configs)
+    process_task1(images, ALLOW_BPM_DEBUG, ALLOW_THERMO_DEBUG, output_path)
    
-def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs):
+def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path):
     """
     
     Pipeline: Input -> [BPM THERMO Detector] -> 
@@ -99,7 +110,6 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
      # task 1 logic
     for i, img_file in enumerate(images):
         img = cv2.imread(img_file)
-
         if img is None:
             print(f"    [Task 1] Could not read {img_file}. Skipping.")
             continue
@@ -107,8 +117,8 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
         # extract image number from the file name (img2.jpg -> 2)
         basename = os.path.splitext(os.path.basename(img_file))[0]
         img_num = basename.replace("img", "")
-        
-        results = bpm_model_detector.predict(img, verbose=False, conf=float(configs["task1_base_confidence_threshold_bpm_thermometer"]))
+
+        results = bpm_model_detector.predict(img, conf=BASE_CONFIDENCE_THRESHOLD_BPM_THEROMETER, retina_masks=True)
         result = results[0]
         # for each result    
         class_names = result.names
@@ -139,7 +149,7 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
                 if allowTHERMODebug:
                     plt.imshow(result.plot())
                     plt.show()
-                final_image = process_thermometer_image(img, tensorBox, allowTHERMODebug, configs)
+                final_image = process_thermometer_image(img, tensorBox, allowTHERMODebug)
                 out_name = f"thermo{img_num}.png"
                 print(f"    [Task 1] {basename}.jpg -> Thermometer -> {out_name}")
             elif label_name == BPM_LABEL:
@@ -147,7 +157,7 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
                     plt.imshow(result.plot())
                     plt.show()
                 # pipeline: image -> [feature detection] -> [bpm detector] -> [lcd detector] ->  output image
-                final_image = process_bpm_image(img, tensorBox, allowBPMDebug, configs)
+                final_image = process_bpm_image(img, tensorBox, allowBPMDebug)
 
                 out_name = f"lcd{img_num}.png"
 
@@ -156,13 +166,10 @@ def process_task1(images, allowBPMDebug, allowTHERMODebug, output_path, configs)
                 print(f"    [Task 1] Object Detection not available for object label: {label_name}")
                 out_name = ""
             
-            if final_image is not None:
-                final_output_path = os.path.join(output_path, out_name)
-                save_output(final_output_path, final_image, output_type='image')
-            else:
-                print(f"    [Task 1] {basename}.jpg -> Processing failed, nothing saved.")
+            final_output_path = os.path.join(output_path, out_name)
+            save_output(final_output_path, final_image, output_type='image')
 
-def process_thermometer_image(img, tensorBox, allowDebug, configs):
+def process_thermometer_image(img, tensorBox, allowDebug):
     """
     For a thermometer image. Map the thermometer to the template orientated lcd screen through SIFT.
 
@@ -182,7 +189,7 @@ def process_thermometer_image(img, tensorBox, allowDebug, configs):
     # crop it to the bounding boxes of thermometer
     final_image = crop_object_box(tensorBox, img)
 
-    final_image = sift_keypoint_perspective_warp(templateTHERMOImage, final_image, allowDebug, configs)
+    final_image = sift_keypoint_perspective_warp(templateTHERMOImage, final_image, allowDebug)
 
     if allowDebug:
         plt.imshow(final_image)
@@ -190,7 +197,7 @@ def process_thermometer_image(img, tensorBox, allowDebug, configs):
 
     return final_image
 
-def process_bpm_image(img, tensorBox, allowDebug, configs):
+def process_bpm_image(img, tensorBox, allowDebug):
     """
     For a bpm image, detect the lcd and crop it. Then map the cropped lcd to the template orientated lcd screen through SIFT.
 
@@ -208,13 +215,8 @@ def process_bpm_image(img, tensorBox, allowDebug, configs):
     # bpm (crop to bounding boxes)
     bpmImg = crop_object_box(tensorBox, img)
 
-    bpmAligned = sift_keypoint_perspective_warp(templateLCDImage, bpmImg, allowDebug, configs)
+    bpmAligned = sift_keypoint_perspective_warp(templateLCDImage, bpmImg, allowDebug)
 
-    if bpmAligned is None:
-        print("    [Task 1] SIFT alignment failed. Returning unaligned crop.")
-        # fallback -> unaligned cropped image if warp fails
-        bpmAligned = bpmImg
-        
     if allowDebug:
         plt.imshow(bpmAligned)
         plt.show()
@@ -233,15 +235,15 @@ def process_bpm_image(img, tensorBox, allowDebug, configs):
     lcdCropped = crop_object_box(lcdDisplayBox, bpmAligned)
     """
     # use crop base image
-    lcdCropped = bpmAligned[int(configs["task1_min_y_lcd_crop"]):int(configs["task1_max_y_lcd_crop"]),
-                            int(configs["task1_min_x_lcd_crop"]):int(configs["task1_max_x_lcd_crop"])]
+    lcdCropped = bpmAligned[MIN_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP:MAX_Y_BPM_LCD_DISPLAY_TEMPLATE_CROP,
+                            MIN_X_BPM_LCD_DISPLAY_TEMPLATE_CROP:MAX_X_BPM_LCD_DISPLAY_TEMPLATE_CROP]
     if allowDebug:
         plt.imshow(lcdCropped)
         plt.show()
 
     return lcdCropped
 
-def sift_keypoint_perspective_warp(image1, image2, allowDebug, configs):
+def sift_keypoint_perspective_warp(image1, image2, allowDebug):
     """
     Maps the keypoints of image2 to the dimensions of image1.
 
@@ -256,7 +258,7 @@ def sift_keypoint_perspective_warp(image1, image2, allowDebug, configs):
     goodMatches, kp1, kp2 = obtain_good_matches(image1, image2)
     
     # if good enough matches
-    if len(goodMatches) > int(configs["task1_sift_keypoint_matches_required"]):
+    if len(goodMatches) > MIN_MATCH_COUNT:
         # obtain matching keypoints locations of both images
         src_pts = np.float32([ kp1[m.queryIdx].pt for m in goodMatches ]).reshape(-1,1,2)
         dst_pts = np.float32([ kp2[m.trainIdx].pt for m in goodMatches ]).reshape(-1,1,2)
@@ -281,7 +283,7 @@ def sift_keypoint_perspective_warp(image1, image2, allowDebug, configs):
         final_image = cv2.warpPerspective(image2, M, (width, height))
         return final_image
     else:
-        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}")
+        print(f"    [Task 1] Not enough matches are found, current: {len(goodMatches)}, needed: {MIN_MATCH_COUNT}")
         return None
     
 def obtain_good_matches(image1, image2):
