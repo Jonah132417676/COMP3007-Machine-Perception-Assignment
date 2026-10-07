@@ -20,7 +20,7 @@ from ml_utils import load_YOLO, clear_file_dir
 from task2 import get_highest_fluid_endpoint
 
 ALLOW_BPM_DEBUG = False
-ALLOW_THERMO_DEBUG = False
+ALLOW_THERMO_DEBUG = True
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 THERMO_NUMBER_READING_DETECTOR_MODEL_PATH = os.path.join("data/task3/","number_detector.pt")
@@ -190,7 +190,7 @@ def calculate_temperature(sub_dir_path, thermo_name, allowDebug, output_path, co
         image=edges, 
         rho=1, 
         theta=np.pi / 360, 
-        threshold=int(configs["task3_hough_lines_threshold"]), # lower threshold as zoomed in more
+        threshold=float(configs["task3_hough_lines_threshold"]), # lower threshold as zoomed in more
         )
         
    

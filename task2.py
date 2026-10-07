@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from ml_utils import load_YOLO, hsv_threshold, clear_file_dir
 
 ALLOW_BPM_DEBUG = False
-ALLOW_THERMO_DEBUG = False
+ALLOW_THERMO_DEBUG = True
 
 LCD_MODEL_PATH = os.path.join("data/task3/","lcd_digit_detector.pt")
 
